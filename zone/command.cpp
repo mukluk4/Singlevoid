@@ -206,6 +206,7 @@ int command_init(void)
 		command_add("push", "[Back Push] [Up Push] - Lets you do spell push on an NPC", AccountStatus::GMLeadAdmin, command_push) ||
 		command_add("raidloot", "[All|GroupLeader|RaidLeader|Selected] - Sets your Raid Loot Type if you have permission to do so.", AccountStatus::Player, command_raidloot) ||
 		command_add("randomfeatures", "Temporarily randomizes the Facial Features of your target", AccountStatus::QuestTroupe, command_randomfeatures) ||
+		command_add("reforge", "Reforge one random line of a dynamic item at the Chronal Artificer in The Void. Use with no arguments to list your items.", AccountStatus::Player, command_reforge) ||
 		command_add("refreshgroup", "Refreshes Group for you or your player target.", AccountStatus::Player, command_refreshgroup) ||
 		command_add("reload", "Reloads different types of server data globally, use no argument for help menu.", AccountStatus::GMMgmt, command_reload) ||
 		command_add("rq", "Reloads quests (alias of #reload quests).", AccountStatus::GMMgmt, command_reload) ||
@@ -249,6 +250,14 @@ int command_init(void)
 		command_add("unscribespells", "Clear out your or your player target's spell book.", AccountStatus::GMCoder, command_unscribespells) ||
 		command_add("untraindisc", "[Spell ID] - Untrain your or your target's discipline by Spell ID", AccountStatus::GMCoder, command_untraindisc) ||
 		command_add("untraindiscs", "Untrains all disciplines from your target.", AccountStatus::GMCoder, command_untraindiscs) ||
+		command_add("vault_page", "Open a Nautilus Vault page", AccountStatus::Player, command_vault_page) ||
+		command_add("vault_deposit", "Deposit the cursor item into a vault slot", AccountStatus::Player, command_vault_deposit) ||
+		command_add("vault_withdraw", "Withdraw an item from a vault slot", AccountStatus::Player, command_vault_withdraw) ||
+		command_add("vault_bank", "Open the bank from the Nautilus Vault", AccountStatus::Player, command_vault_bank) ||
+		command_add("vault_merchant", "Open a merchant from the Nautilus Vault", AccountStatus::Player, command_vault_merchant) ||
+		command_add("vault_deposit_bagitem_specific", "Deposit the cursor item into a vault bag slot", AccountStatus::Player, command_vault_deposit_bagitem_specific) ||
+		command_add("vault_withdraw_bagitem", "Withdraw an item from a vault bag slot", AccountStatus::Player, command_vault_withdraw_bagitem) ||
+		command_add("nmsloot_decide", "Apply a /nmsloot decision (offer_id action [pass_to])", AccountStatus::GMAdmin, command_nmsloot_decide) ||
 		command_add("wc", "[Slot ID] [Material] [Hero Forge Model] [Elite Material] - Sets the specified slot for you or your target to a material, Hero Forge Model and Elite Material are optional", AccountStatus::GMMgmt, command_wc) ||
 		command_add("worldshutdown", "Shut down world and all zones", AccountStatus::GMMgmt, command_worldshutdown) ||
 		command_add("wp", "[add|delete] [grid_id] [pause] [waypoint_id] [-h] - Add or delete a waypoint by grid ID. (-h to use current heading)", AccountStatus::GMAreas, command_wp) ||

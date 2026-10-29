@@ -30,6 +30,7 @@
 #include "zone/quest_parser_collection.h"
 #include "zone/string_ids.h"
 #include "zone/worldserver.h"
+#include "zone/nms_vault.h"
 
 #include <cmath>
 
@@ -6712,6 +6713,73 @@ int64 Mob::GetFocusEffect(focusType type, uint16 spell_id, Mob *caster, bool fro
 			}
 		}
 
+		if (IsClient()) {
+			// Nautilus Vault mod slots: parked items lend their focus best-wins alongside
+			// everything else. The list is pre-filtered to valid ItemEffectFocus entries.
+			const EQ::ItemData *locker_focus[28] = {};
+			const int locker_count = NmsVaultLockerFocusList(CastToClient(), locker_focus, 28);
+			for (int i = 0; i < locker_count; ++i) {
+				TempItem = locker_focus[i];
+				if (rand_effectiveness) {
+					focus_max = CalcFocusEffect(type, TempItem->Focus.Effect, spell_id, true);
+					if (focus_max > 0 && focus_max_real >= 0 && focus_max > focus_max_real) {
+						focus_max_real = focus_max;
+						UsedItem = TempItem;
+						UsedFocusID = TempItem->Focus.Effect;
+					}
+					else if (focus_max < 0 && focus_max < focus_max_real) {
+						focus_max_real = focus_max;
+						UsedItem = TempItem;
+						UsedFocusID = TempItem->Focus.Effect;
+					}
+				}
+				else {
+					Total = CalcFocusEffect(type, TempItem->Focus.Effect, spell_id);
+					if (Total > 0 && realTotal >= 0 && Total > realTotal) {
+						realTotal = Total;
+						UsedItem = TempItem;
+						UsedFocusID = TempItem->Focus.Effect;
+					}
+					else if (Total < 0 && Total < realTotal) {
+						realTotal = Total;
+						UsedItem = TempItem;
+						UsedFocusID = TempItem->Focus.Effect;
+					}
+				}
+			}
+		}
+
+		if (IsClient()) {
+			// Armor set bonus focus spells compete best-wins with item focus. There is no item
+			// behind them, so a winning set focus clears UsedItem and shows no focus message.
+			bool set_focus_used = false;
+			for (const auto set_focus : CastToClient()->GetSetBonusFocusSpells()) {
+				if (rand_effectiveness) {
+					focus_max = CalcFocusEffect(type, set_focus, spell_id, true);
+					if ((focus_max > 0 && focus_max_real >= 0 && focus_max > focus_max_real) ||
+						(focus_max < 0 && focus_max < focus_max_real)) {
+						focus_max_real = focus_max;
+						UsedItem       = nullptr;
+						UsedFocusID    = set_focus;
+						set_focus_used = true;
+					}
+				}
+				else {
+					Total = CalcFocusEffect(type, set_focus, spell_id);
+					if ((Total > 0 && realTotal >= 0 && Total > realTotal) || (Total < 0 && Total < realTotal)) {
+						realTotal      = Total;
+						UsedItem       = nullptr;
+						UsedFocusID    = set_focus;
+						set_focus_used = true;
+					}
+				}
+			}
+
+			if (set_focus_used && rand_effectiveness && focus_max_real != 0) {
+				realTotal = CalcFocusEffect(type, UsedFocusID, spell_id);
+			}
+		}
+
 		if (UsedItem && rand_effectiveness && focus_max_real != 0) {
 			realTotal = CalcFocusEffect(type, UsedFocusID, spell_id);
 		}
@@ -6823,6 +6891,10 @@ int64 Mob::GetFocusEffect(focusType type, uint16 spell_id, Mob *caster, bool fro
 
 		int32 Total3 = 0;
 
+		const bool sum_aa_focus = RuleB(Custom, AAFocusEffectsStack);
+		const bool is_dmg_focus = (type == focusImprovedDamage || type == focusImprovedDamage2 ||
+			type == focusFcDamagePctCrit || type == focusFcDamageAmtCrit);
+
 		for (const auto &aa : aa_ranks) {
 			auto ability_rank = zone->GetAlternateAdvancementAbilityAndRank(aa.first, aa.second.first);
 			auto ability = ability_rank.first;
@@ -6837,11 +6909,26 @@ int64 Mob::GetFocusEffect(focusType type, uint16 spell_id, Mob *caster, bool fro
 			}
 
 			Total3 = CalcAAFocus(type, *rank, spell_id);
-			if (Total3 > 0 && realTotal3 >= 0 && Total3 > realTotal3) {
+			if (sum_aa_focus) {
+				realTotal3 += Total3;
+			}
+			else if (Total3 > 0 && realTotal3 >= 0 && Total3 > realTotal3) {
 				realTotal3 = Total3;
 			}
 			else if (Total3 < 0 && Total3 < realTotal3) {
 				realTotal3 = Total3;
+			}
+		}
+
+		if (sum_aa_focus && is_dmg_focus) {
+			const int32 aa_focus_cap = RuleI(Custom, MaxAACritDmgFocus);
+			if (aa_focus_cap > 0) {
+				if (realTotal3 > aa_focus_cap) {
+					realTotal3 = aa_focus_cap;
+				}
+				else if (realTotal3 < -aa_focus_cap) {
+					realTotal3 = -aa_focus_cap;
+				}
 			}
 		}
 	}
@@ -10485,6 +10572,27 @@ void Mob::ApplySpellEffectIllusion(int32 spell_id, Mob *caster, int buffslot, in
 	}
 	// Racial Illusions
 	else {
+		// Beastlord Warder Form (Bestial Alignment): mirror the beastlord pet chart
+		// (pets_beastlord_data) for each recipient's own race. Falls back to the
+		// generic wolf illusion below if the race has no valid chart entry.
+		if (RuleB(Custom, BestialAlignmentRacialLook) && (spell_id == 30738 || spell_id == 16443)) {
+			auto warder = content_db.GetBeastlordPetData(GetBaseRace());
+			bool valid  = (warder.race_id != Race::Wolf || GetBaseRace() == Race::Wolf);
+			if (valid) {
+				SendIllusionPacket(
+					AppearanceStruct{
+						.face           = static_cast<uint8>(warder.face),
+						.gender_id      = static_cast<uint8>(warder.gender),
+						.helmet_texture = static_cast<uint8>(warder.helm_texture),
+						.race_id        = static_cast<uint16>(warder.race_id),
+						.size           = GetBaseSize() * warder.size_modifier,
+						.texture        = static_cast<uint8>(warder.texture),
+					}
+				);
+				return;
+			}
+		}
+
 		auto gender_id = (
 			max > 0 &&
 			(

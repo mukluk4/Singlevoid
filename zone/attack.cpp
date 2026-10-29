@@ -33,6 +33,8 @@
 #include "zone/string_ids.h"
 #include "zone/water_map.h"
 #include "zone/worldserver.h"
+#include "zone/nms_loot_offers.h"
+#include "zone/nms_vault.h"
 #include "zone/zone.h"
 
 extern QueryServ* QServ;
@@ -222,7 +224,7 @@ int Mob::GetTotalToHit(EQ::skills::SkillType skill, int chance_mod)
 		aabonuses.HitChanceEffect[skill] +
 		spellbonuses.HitChanceEffect[skill];
 
-	if (skill == EQ::skills::SkillArchery) {
+	if (skill == EQ::skills::SkillArchery || (skill == EQ::skills::SkillThrowing && RuleB(Custom, ThrowingUsesArcheryBonuses))) {
 		hit_bonus += spellbonuses.increase_archery + aabonuses.increase_archery + itembonuses.increase_archery;
 		hit_bonus -= hit_bonus * RuleR(Combat, ArcheryHitPenalty);
 	}
@@ -2922,6 +2924,18 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 			}
 		}
 
+		// /nmsloot: personal loot rolls for the credited client and their group/raid in this zone
+		Client *nms_loot_credit = nullptr;
+		if (killer && killer->IsClient()) {
+			nms_loot_credit = killer->CastToClient();
+		} else if (killer_mob) {
+			Mob *ultimate_owner = killer_mob->GetUltimateOwner();
+			if (ultimate_owner && ultimate_owner->IsClient()) {
+				nms_loot_credit = ultimate_owner->CastToClient();
+			}
+		}
+		NmsLootOfferOnCorpseCreated(corpse, nms_loot_credit, this);
+
 		if (zone && zone->adv_data) {
 			auto sr = (ServerZoneAdventureDataReply_Struct *) zone->adv_data;
 			if (sr->type == Adventure_Kill) {
@@ -5038,6 +5052,18 @@ void Mob::TryWeaponProc(const EQ::ItemInstance *inst, const EQ::ItemData *weapon
 	}
 	if (!weapon)
 		return;
+
+	const EQ::ItemData *locker_item = nullptr;
+	if (IsClient()) {
+		locker_item = NmsVaultProcItem(CastToClient(), hand);
+		if (locker_item && !RuleB(Custom, ProcLockerStacks)) {
+			// The locker item replaces the held weapon's proc and suppresses its aug procs.
+			// Stacking mode instead lets all three roll.
+			weapon = locker_item;
+			inst = nullptr;
+			locker_item = nullptr;
+		}
+	}
 	uint16 skillinuse = 28;
 	int ourlevel = GetLevel();
 	float ProcBonus = static_cast<float>(aabonuses.ProcChanceSPA +
@@ -5112,6 +5138,58 @@ void Mob::TryWeaponProc(const EQ::ItemInstance *inst, const EQ::ItemData *weapon
 			}
 		}
 	}
+	// Nautilus Vault Proc Locker: independent rolls so the locker (its innate proc and
+	// its augs) procs alongside the held weapon's innate proc and aug procs
+	// (Custom:ProcLockerStacks). Same chance formula as a weapon proc, including the
+	// secondary-hand halving already in ProcChance. Ranged is covered: archery reaches
+	// here with hand = slotRange, rolling the slot-83 locker item and its augs.
+	if (IsClient() && locker_item) {
+		bool locker_proced = false;
+
+		if (locker_item->Proc.Type == EQ::item::ItemEffectCombatProc && IsValidSpell(locker_item->Proc.Effect)) {
+			float LPC = ProcChance * (100.0f + static_cast<float>(locker_item->ProcRate)) / 100.0f;
+			if (zone->random.Roll(LPC)) {
+				if (locker_item->Proc.Level2 > ourlevel) {
+					LogCombat("Proc Locker item ([{}]) rolled but requires level [{}]", locker_item->Name, locker_item->Proc.Level2);
+				}
+				else {
+					LogCombat("Proc Locker item ([{}]) procing spell [{}] on [{}]", locker_item->Name, locker_item->Proc.Effect, on->GetName());
+					ExecWeaponProc(nullptr, locker_item->Proc.Effect, on);
+					locker_proced = true;
+				}
+			}
+		}
+
+		// Mirror the stock weapon gating for the locker's own augs
+		if (!RuleB(Combat, OneProcPerWeapon)) {
+			locker_proced = false;
+		}
+
+		if (!locker_proced) {
+			const EQ::ItemData *locker_augs[6] = {};
+			const int aug_count = NmsVaultProcAugs(CastToClient(), hand, locker_augs, 6);
+			for (int i = 0; i < aug_count; ++i) {
+				const EQ::ItemData *aug = locker_augs[i];
+				if (aug->Proc.Type != EQ::item::ItemEffectCombatProc || !IsValidSpell(aug->Proc.Effect)) {
+					continue;
+				}
+				float APC = ProcChance * (100.0f + static_cast<float>(aug->ProcRate)) / 100.0f;
+				if (zone->random.Roll(APC)) {
+					if (aug->Proc.Level2 > ourlevel) {
+						LogCombat("Proc Locker aug ([{}]) rolled but requires level [{}]", aug->Name, aug->Proc.Level2);
+					}
+					else {
+						LogCombat("Proc Locker aug ([{}]) procing spell [{}] on [{}]", aug->Name, aug->Proc.Effect, on->GetName());
+						ExecWeaponProc(nullptr, aug->Proc.Effect, on);
+						if (RuleB(Combat, OneProcPerWeapon)) {
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// TODO: Powersource procs -- powersource procs are from augs so shouldn't need anything extra
 
 	return;
@@ -5330,6 +5408,9 @@ void Mob::TryPetCriticalHit(Mob *defender, DamageHitInfo &hit)
 	if (critChance > 0) {
 		if (zone->random.Roll(critChance)) {
 			critMod += GetCritDmgMod(hit.skill, owner);
+			if (RuleB(Custom, PetCritsAtLeastDouble)) {
+				critMod = std::max(critMod, 100);
+			}
 			hit.damage_done += 5;
 			hit.damage_done = (hit.damage_done * critMod) / 100;
 
@@ -5438,6 +5519,8 @@ void Mob::TryCriticalHit(Mob *defender, DamageHitInfo &hit, ExtraAttackOptions *
 	} else if (GetClass() == Class::Ranger && GetLevel() >= 12 && hit.skill == EQ::skills::SkillArchery) {
 		innate_crit = true;
 	} else if (GetClass() == Class::Rogue && GetLevel() >= 12 && hit.skill == EQ::skills::SkillThrowing) {
+		innate_crit = true;
+	} else if ((GetClass() == Class::Ranger || GetClass() == Class::Rogue) && GetLevel() >= 12 && RuleB(Custom, RogueRangerInnateCrit)) {
 		innate_crit = true;
 	}
 
@@ -6383,6 +6466,12 @@ void Mob::CommonOutgoingHitSuccess(Mob* defender, DamageHitInfo &hit, ExtraAttac
 
 		//Scale Factor for Archery Damage Tuning
 		hit.damage_done *= RuleR(Combat, ArcheryBaseDamageBonus);
+	}
+	else if (hit.skill == EQ::skills::SkillThrowing && RuleB(Custom, ThrowingUsesArcheryBonuses)) {
+		int headshot = TryHeadShot(defender, hit.skill);
+		if (headshot > 0) {
+			hit.damage_done = headshot;
+		}
 	}
 
 	int extra_mincap = 0;

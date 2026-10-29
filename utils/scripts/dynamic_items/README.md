@@ -18,6 +18,7 @@ The generators only **read**. They write SQL and Lua files, which you apply your
 | `gen_tier_gear.py <source> class_sets.json tier_gear.json <out.sql>` | `03_tier_gear.sql`: armor tiers 2-5, jewelry and augments for tiers 1-5, their set bonuses and server-side spells, 14 tier vendors in The Void | `tier_gear.json` |
 | `gen_rift_zones.py <source> <out.sql> rift/lua_modules/rift_zones.lua` | `04_rift_zones.sql` and the rift zone pool | the zone list in the script |
 | `gen_rift_appearances.py <source> rift/lua_modules/rift_appearances.lua` | mob looks per rift zone, plus Guardian looks | the database's own spawns |
+| `gen_sinks.py` | `05_sinks.sql` (Chronal Tributes, Paragon AAs, the Chronal Artificer), `06_paragon_nms_aa.sql` and `rift/client/dbstr_paragon.txt` | the settings at the top of the script (needs no source) |
 | `luacheck.py <lua51.dll> <files>` | nothing: compiles the Lua with the server's Lua to catch syntax errors | |
 | `make_package.py [--base <commit>] [--no-bin]` | the release folder and zip in `build/package/`: the code patch (checked against a clean upstream copy), the content, and the built Windows programs | the working tree; nothing is committed |
 
@@ -47,8 +48,10 @@ content. On stock PEQ, Hate, Grieg's End, Dreadspire and Nagafen's Lair use vers
 |---|---|
 | `lua_modules/*.lua` | your server's `lua_modules/` folder (the one the server searches; check `directories.lua_modules` in `eqemu_config.json`) |
 | `quests/global/Rift_*.lua` | `quests/global/` |
-| `quests/thevoida/459000.lua` | `quests/thevoida/` (Zebuxoruk) |
+| `quests/thevoida/459000.lua`, `1200050.lua` | `quests/thevoida/` (Zebuxoruk, the Chronal Artificer) |
 | `GlobalLoad.txt` | each player's EverQuest `Resources/` folder (client file; loads the models the rift NPCs and Guardians use) |
+| `client/add_spells.py <spells_us.txt>` | run on each player's `spells_us.txt`: adds the custom spells the client must know (Hail of Arrows I-V, from `tier_gear.json`) |
+| `client/add_dbstr.py <dbstr_us.txt>` | run on each player's `Resources/dbstr_us.txt`: adds the Paragon AA names and descriptions |
 
 Every rift setting (hub, time limit, tier cap, rewards, NPC ids, pylons, champion and Guardian
 spells) is in `lua_modules/rift_config.lua`. The scripts need the stock quest modules

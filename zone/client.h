@@ -257,8 +257,10 @@ public:
 	std::unordered_map<uint32, uint32> CountEquippedArmorSetPieces(); // set id -> pieces worn that count for this character
 	std::unordered_map<uint32, uint32> m_active_armor_set_tiers;
 	std::vector<uint16> m_set_bonus_sympathetic; // active set bonus spell-cast procs, rebuilt by CheckArmorSetBonuses
+	std::vector<uint16> m_set_bonus_focus;       // active set bonus focus spells, rebuilt by CheckArmorSetBonuses
 	std::set<uint16>    m_set_bonus_procs;       // weapon procs added by set bonuses, so they can be removed
 	const std::vector<uint16> &GetSetBonusSympatheticSpells() const { return m_set_bonus_sympathetic; }
+	const std::vector<uint16> &GetSetBonusFocusSpells() const { return m_set_bonus_focus; }
 	EQ::DynamicItemBonuses dynamic_item_bonuses;
 	uint16 GetClassesBits() const { return GetPlayerClassBit(GetClass()); } // class bitmask (multiclass servers: all classes)
 
@@ -1142,6 +1144,15 @@ public:
 	int32 GetItemIDAt(int16 slot_id);
 	int32 GetAugmentIDAt(int16 slot_id, uint8 augslot);
 	bool PutItemInInventory(int16 slot_id, const EQ::ItemInstance& inst, bool client_update = false);
+	void RollbackFailedItemPut(int16 slot_id, bool client_update = true);
+
+	// Nautilus Vault: bank / merchant opened from the vault rather than a nearby NPC (nms_vault.cpp)
+	inline bool GetNmsVaultBank() const { return m_nms_vault_bank; }
+	inline void SetNmsVaultBank(bool value) { m_nms_vault_bank = value; }
+	inline bool GetNmsVaultMerchant() const { return m_nms_vault_merchant; }
+	inline void SetNmsVaultMerchant(bool value) { m_nms_vault_merchant = value; }
+	inline uint32 GetNmsVaultMerchantId() const { return m_nms_vault_merchant_id; }
+	inline void SetNmsVaultMerchantId(uint32 value) { m_nms_vault_merchant_id = value; }
 	bool PutItemInInventoryWithStacking(EQ::ItemInstance* inst);
 	bool FindNumberOfFreeInventorySlotsWithSizeCheck(std::vector<BuyerLineTradeItems_Struct> items);
 	bool PushItemOnCursor(const EQ::ItemInstance& inst, bool client_update = false);
@@ -2142,6 +2153,10 @@ private:
 
 	// https://github.com/EQEmu/Server/pull/2479
 	bool m_lock_save_position = false;
+
+	bool m_nms_vault_bank = false;
+	bool m_nms_vault_merchant = false;
+	uint32 m_nms_vault_merchant_id = 0;
 public:
 	bool IsLockSavePosition() const;
 	void SetLockSavePosition(bool lock_save_position);

@@ -66,6 +66,10 @@ set(zone_sources
     mob_info.cpp
     mob_movement_manager.cpp
     nms_aa_tables.cpp
+    nms_chronal_tribute.cpp
+    nms_loot_offers.cpp
+    nms_paragon.cpp
+    nms_vault.cpp
     npc.cpp
     npc_scale_manager.cpp
     object.cpp
@@ -506,6 +510,7 @@ set(gm_command_sources
     gm_commands/push.cpp
     gm_commands/raidloot.cpp
     gm_commands/randomfeatures.cpp
+    gm_commands/reforge.cpp
     gm_commands/refreshgroup.cpp
     gm_commands/reload.cpp
     gm_commands/removeitem.cpp
@@ -654,6 +659,7 @@ set(gm_command_sources
     gm_commands/unscribespells.cpp
     gm_commands/untraindisc.cpp
     gm_commands/untraindiscs.cpp
+    gm_commands/vault.cpp
     gm_commands/wc.cpp
     gm_commands/worldshutdown.cpp
     gm_commands/worldwide.cpp

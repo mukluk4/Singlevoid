@@ -125,6 +125,12 @@ namespace EQ
 		// Add item to cursor queue
 		int16 PushCursor(const ItemInstance& inst);
 
+		// Add item to the front of the cursor queue (restores a cursor item a failed move took)
+		int16 PushCursorFront(const ItemInstance& inst);
+
+		// Remove (and return) the most recently pushed cursor item
+		ItemInstance* PopCursorBack();
+
 		// Get cursor item in front of queue
 		ItemInstance* GetCursorItem();
 

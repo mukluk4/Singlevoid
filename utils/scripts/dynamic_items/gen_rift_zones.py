@@ -31,7 +31,7 @@ ENTRY_CLEAR_BY_ZONE = {'sleeper': 150, 'dreadspire': 100, 'soldunga': 80, 'soldu
 
 DEFAULT_ZONES = ['codecay', 'sebilis', 'chardok',
                  'befallen', 'karnor', 'mistmoore', 'fearplane', 'cazicthule', 'charasis', 'permafrost',
-                 'sleeper', 'velketor', 'hateplaneb', 'akheva', 'griegsend',
+                 'sleeper', 'hateplaneb', 'akheva', 'griegsend',
                  'dreadspire', 'soldunga', 'soldungb', 'kael', 'oldkaesoraa', 'anguish', 'frostcrypt',
                  'convorteum', 'kaesora', 'somnium', 'riftseekers', 'chapterhouse', 'ashengate']
 # Chapterhouse's safe point is a cramped corner; the arrival point from Shard's Landing opens into the zone
@@ -137,9 +137,11 @@ for sn in ZONES:
     sql.append(copy_version('doors', 'zone', q, door_cols, v, {'keyitem': '0', 'lockpick': '0'}).rstrip())
     sql.append(copy_version('zone_points', 'zone', q, zp_cols, v).rstrip())
     sql.append(copy_version('ground_spawns', 'zoneid', z['id'], gs_cols, v).rstrip())
-    # Zone row for the rift version: no entry requirements, rift entry point as the safe spot
+    # Zone row for the rift version: no entry requirements, rift entry point as the safe spot. Open in every
+    # expansion and content flag setting: the rift picks its zones itself
     overrides = {'version': str(v), 'flag_needed': "''", 'min_level': '0', 'min_status': '0',
-                 'safe_x': str(z['x']), 'safe_y': str(z['y']), 'safe_z': str(z['z']), 'safe_heading': str(z['h'])}
+                 'safe_x': str(z['x']), 'safe_y': str(z['y']), 'safe_z': str(z['z']), 'safe_heading': str(z['h']),
+                 'min_expansion': '-1', 'max_expansion': '-1', 'content_flags': 'NULL', 'content_flags_disabled': 'NULL'}
     names = ', '.join(f'`{c}`' for c in zone_cols)
     values = ', '.join(overrides.get(c, f'`{c}`') for c in zone_cols)
     sql.append(f"DELETE FROM zone WHERE short_name = {q} AND version = {v};")

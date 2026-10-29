@@ -22,6 +22,7 @@
 #include "common/rulesys.h"
 #include "common/shareddb.h"
 #include "common/strings.h"
+#include "common/nms_vault_item.h"
 
 #include <climits>
 
@@ -853,7 +854,7 @@ void EQ::ItemInstance::SetCustomData(const std::string& identifier, const std::s
 	DeleteCustomData(identifier);
 	m_custom_data[identifier] = value;
 
-	if (identifier == DYNAMIC_SEED_KEY && dynamic_stats_hook) {
+	if ((identifier == DYNAMIC_SEED_KEY || identifier == DYNAMIC_ENCHANT_KEY) && dynamic_stats_hook) {
 		dynamic_stats_hook(*this);
 	}
 }
@@ -933,7 +934,7 @@ bool EQ::ItemInstance::IsDroppable(bool recurse) const
 	}
 	/*if (m_ornamentidfile) // not implemented
 		return false;*/
-	if (m_attuned) {
+	if (m_attuned || NmsVaultIsArmoryItem(m_item->ID)) {
 		return false;
 	}
 

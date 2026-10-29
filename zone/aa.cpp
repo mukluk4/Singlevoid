@@ -34,6 +34,7 @@
 #include "zone/corpse.h"
 #include "zone/groups.h"
 #include "zone/mob.h"
+#include "zone/nms_paragon.h"
 #include "zone/queryserv.h"
 #include "zone/quest_parser_collection.h"
 #include "zone/raids.h"
@@ -41,6 +42,8 @@
 #include "zone/titles.h"
 #include "zone/worldserver.h"
 #include "zone/zonedb.h"
+
+#include <algorithm>
 
 extern WorldServer worldserver;
 extern QueryServ* QServ;
@@ -531,6 +534,15 @@ void Client::ResetAA()
 			continue;
 		}
 
+		if (slot_id >= MAX_PP_AA_ARRAY) {
+			LogError(
+				"ResetAA for [{}] exceeded the player profile AA array capacity of [{}], truncating",
+				GetCleanName(),
+				MAX_PP_AA_ARRAY
+			);
+			break;
+		}
+
 		m_pp.aa_array[slot_id].AA      = rank_value.first;
 		m_pp.aa_array[slot_id].value   = rank_value.second.first;
 		m_pp.aa_array[slot_id].charges = rank_value.second.second;
@@ -962,11 +974,15 @@ void Client::SendAlternateAdvancementRank(int aa_id, int level) {
 	aai->category = ability->category;
 	aai->charges = ability->charges;
 	aai->grant_only = ability->grant_only;
-	aai->total_effects = rank->effects.size();
+	// Server-only effects (Paragon heroic stats) aren't sent; the client has no such spell effect
+	aai->total_effects = std::count_if(rank->effects.begin(), rank->effects.end(), [](const auto &e) { return !NmsIsParagonSpa(e.effect_id); });
 	aai->total_prereqs = rank->prereqs.size();
 
 	outapp->SetWritePosition(sizeof(AARankInfo_Struct));
 	for(auto &effect : rank->effects) {
+		if (NmsIsParagonSpa(effect.effect_id)) {
+			continue;
+		}
 		outapp->WriteSInt32(effect.effect_id);
 		outapp->WriteSInt32(effect.base_value);
 		outapp->WriteSInt32(effect.limit_value);
@@ -1003,6 +1019,15 @@ void Client::SendAlternateAdvancementPoints() {
 		if(ranks) {
 			AA::Rank *rank = aa.second->GetRankByPointsSpent(ranks);
 			if(rank) {
+				if (i >= MAX_PP_AA_ARRAY) {
+					LogError(
+						"SendAlternateAdvancementPoints for [{}] exceeded the AA table capacity of [{}], truncating",
+						GetCleanName(),
+						MAX_PP_AA_ARRAY
+					);
+					break;
+				}
+
 				aa2->aa_list[i].AA = rank->id;
 				aa2->aa_list[i].value = rank->total_cost;
 				aa2->aa_list[i].charges = charges;
@@ -1447,6 +1472,15 @@ bool ZoneDatabase::LoadAlternateAdvancement(Client *c) {
 		rank = ability->GetRankByPointsSpent(aa_value);
 
 		if (c->CanUseAlternateAdvancementRank(rank)) {
+			if (slot_id >= MAX_PP_AA_ARRAY) {
+				LogError(
+					"Character [{}] owns more AA ranks than the player profile can hold, truncating at [{}] entries",
+					c->GetCleanName(),
+					MAX_PP_AA_ARRAY
+				);
+				break;
+			}
+
 			c->GetPP().aa_array[slot_id].AA      = aa_id;
 			c->GetPP().aa_array[slot_id].value   = aa_value;
 			c->GetPP().aa_array[slot_id].charges = charges;

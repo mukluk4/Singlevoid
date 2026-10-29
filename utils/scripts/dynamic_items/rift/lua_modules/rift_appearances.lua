@@ -6,7 +6,7 @@
 -- global: models the client loads in every zone (from Resources/GlobalLoad.txt), used everywhere.
 -- ============================================================================
 
-local M = { zones = {}, bosses = {}, global = {}, size_cap = {}, cap_skip_races = {} }
+local M = { zones = {}, bosses = {}, global = {}, size_cap = {}, cap_skip_races = {}, zone_skip_races = {} }
 
 M.zones["codecay"] = {
     { race = 250, gender = 2, texture = 0, helmtexture = 0, size = 12, bodytype = 3, name = "Tortured Banshee" },
@@ -130,17 +130,6 @@ M.zones["sleeper"] = {
     { race = 157, gender = 2, texture = 1, helmtexture = 1, size = 12, bodytype = 26, name = "Scholarly Wyvern" },
     { race = 174, gender = 2, texture = 0, helmtexture = 0, size = 12, bodytype = 3, name = "Scorn Spectre" },
     { race = 432, gender = 2, texture = 2, helmtexture = 2, size = 12, bodytype = 23, name = "Ancient Drakonine" },
-}
-
-M.zones["velketor"] = {
-    { race = 17, gender = 0, texture = 0, helmtexture = 0, size = 9, bodytype = 5, name = "Crystal Sentinel" },
-    { race = 29, gender = 0, texture = 0, helmtexture = 0, size = 8, bodytype = 5, name = "Crystalline Gargoyle" },
-    { race = 38, gender = 2, texture = 5, helmtexture = 0, size = 4, bodytype = 22, name = "Crystalline Watcher" },
-    { race = 48, gender = 2, texture = 3, helmtexture = 0, size = 8, bodytype = 1, name = "Icepaw Kobold" },
-    { race = 68, gender = 2, texture = 1, helmtexture = 0, size = 8, bodytype = 23, name = "Large Crystal Shard" },
-    { race = 174, gender = 2, texture = 0, helmtexture = 0, size = 6, bodytype = 3, name = "Cold Spectre" },
-    { race = 183, gender = 0, texture = 0, helmtexture = 0, size = 6, bodytype = 1, name = "Coldain Hunter" },
-    { race = 189, gender = 0, texture = 0, helmtexture = 0, size = 12, bodytype = 4, name = "Lesser Storm Giant Noble" },
 }
 
 M.zones["hateplaneb"] = {
@@ -337,11 +326,6 @@ M.bosses["sleeper"] = {
     { race = 530, gender = 2, texture = 0, helmtexture = 0, size = 15, bodytype = 26, name = "Ancient Dragon" },
     { race = 572, gender = 2, texture = 0, helmtexture = 0, size = 12, bodytype = 5, name = "Clockwork Guardian" },
 }
-M.bosses["velketor"] = {
-    { race = 441, gender = 2, texture = 0, helmtexture = 0, size = 10, bodytype = 22, name = "Spider Queen" },
-    { race = 417, gender = 2, texture = 0, helmtexture = 0, size = 10, bodytype = 24, name = "Gelidran" },
-    { race = 485, gender = 2, texture = 0, helmtexture = 0, size = 9, bodytype = 3, name = "Spectre" },
-}
 M.bosses["hateplaneb"] = {
     { race = 466, gender = 2, texture = 0, helmtexture = 0, size = 9, bodytype = 6, name = "Dark Lord" },
     { race = 351, gender = 0, texture = 0, helmtexture = 0, size = 8, bodytype = 1, name = "Knight of Hate" },
@@ -472,5 +456,8 @@ M.size_cap["befallen"] = 7
 M.size_cap["cazicthule"] = 7
 -- cap_skip_races[race]: never used in a capped zone (too tall at any size)
 M.cap_skip_races[244] = true
+-- zone_skip_races[short_name][race]: never used in that zone (see ZONE_SKIP_RACES in the generator)
+M.zone_skip_races["soldunga"] = { [244] = true }
+M.zone_skip_races["soldungb"] = { [244] = true }
 
 return M

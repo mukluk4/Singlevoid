@@ -33,7 +33,7 @@ if os.path.exists(out):
     shutil.rmtree(out)
 os.makedirs(out)
 
-CODE_PATHS = ['common', 'world', 'zone']
+CODE_PATHS = ['common', 'world', 'zone', 'utils/patches']
 CONTENT = ['docs/dynamic_items', 'utils/scripts/dynamic_items', 'utils/sql/dynamic_items']
 
 # --- Patch: working tree (tracked + new files) against the base, via a throwaway index

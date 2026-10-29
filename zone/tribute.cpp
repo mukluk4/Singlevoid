@@ -22,6 +22,7 @@
 #include "common/guild_base.h"
 #include "common/repositories/guild_tributes_repository.h"
 #include "zone/guild_mgr.h"
+#include "zone/nms_chronal_tribute.h"
 #include "zone/worldserver.h"
 
 #include <map>
@@ -64,6 +65,11 @@ void Client::ToggleTribute(bool enabled) {
 				continue;
 			}
 
+			// Chronal Tributes are paid per rift run instead (NmsChronalTributeRefresh)
+			if (NmsIsChronalTribute(tid)) {
+				continue;
+			}
+
 			cost += tier.cost;
 		}
 
@@ -87,6 +93,8 @@ void Client::ToggleTribute(bool enabled) {
 }
 
 void Client::DoTributeUpdate() {
+	NmsChronalTributeRefresh(this);
+
 	EQApplicationPacket outapp(OP_TributeUpdate, sizeof(TributeInfo_Struct));
 	TributeInfo_Struct *tis = (TributeInfo_Struct *) outapp.pBuffer;
 
@@ -131,8 +139,16 @@ void Client::DoTributeUpdate() {
 				continue;
 			}
 
+			// A Chronal Tribute outside its rift band: no benefit item, so the client doesn't count its stats
+			if (NmsIsChronalTribute(tid) && !NmsChronalTributeActive(this, r)) {
+				if (m_inv[EQ::invslot::TRIBUTE_BEGIN + r])
+					DeleteItemInInventory(EQ::invslot::TRIBUTE_BEGIN + r);
+				continue;
+			}
+
 			TributeData &d = tribute_list[tid];
-			TributeLevel_Struct &tier = d.tiers[m_pp.tributes[r].tier];
+			const uint32 tier_index = NmsIsChronalTribute(tid) ? NmsChronalTributeTier(this, m_pp.tributes[r].tier) : m_pp.tributes[r].tier;
+			TributeLevel_Struct &tier = d.tiers[tier_index];
 			uint32 item_id = tier.tribute_item_id;
 
 			//summon the item for them

@@ -37,9 +37,43 @@
 #include "zone/string_ids.h"
 #include "zone/worldserver.h"
 
+#include "zone/nms_loot_offers.h"
+
+#include <chrono>
 #include <iostream>
+#include <random>
+
+#ifdef _WINDOWS
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 using json = nlohmann::json;
+
+namespace {
+	// Unique per corpse for the life of the zone process; /nmsloot offers key on it so a reused
+	// entity id never matches a newer corpse.
+	uint64 NextNmsLootSerial()
+	{
+		static uint64 next = []() {
+			const uint64 ticks = static_cast<uint64>(
+				std::chrono::high_resolution_clock::now().time_since_epoch().count()
+			);
+#ifdef _WINDOWS
+			const uint64 pid = static_cast<uint64>(_getpid());
+#else
+			const uint64 pid = static_cast<uint64>(getpid());
+#endif
+			std::random_device rd;
+			const uint64 rnd = (static_cast<uint64>(rd()) << 32) ^ static_cast<uint64>(rd());
+			uint64 seed = ticks ^ (pid << 32) ^ rnd;
+			return seed ? seed : 0x9e3779b97f4a7c15ULL;
+		}();
+		const uint64 value = next++;
+		return value ? value : next++;
+	}
+}
 
 extern EntityList           entity_list;
 extern Zone                *zone;
@@ -188,6 +222,7 @@ Corpse::Corpse(
 	UpdateActiveLight();
 
 	m_loot_request_type = LootRequestType::Forbidden;
+	m_nms_loot_serial = NextNmsLootSerial();
 }
 
 Corpse::Corpse(Client *c, int32 rez_exp, KilledByTypes in_killed_by) : Mob(
@@ -411,6 +446,7 @@ Corpse::Corpse(Client *c, int32 rez_exp, KilledByTypes in_killed_by) : Mob(
 	UpdateActiveLight();
 
 	m_loot_request_type = LootRequestType::Forbidden;
+	m_nms_loot_serial = NextNmsLootSerial();
 
 	IsRezzed(false);
 	Save();
@@ -605,6 +641,7 @@ Corpse::Corpse(
 	UpdateActiveLight();
 
 	m_loot_request_type = LootRequestType::Forbidden;
+	m_nms_loot_serial = NextNmsLootSerial();
 }
 
 Corpse::~Corpse()
@@ -903,13 +940,22 @@ void Corpse::RemoveItem(uint16 lootslot)
 	}
 }
 
-void Corpse::RemoveItem(LootItem *item_data)
+void Corpse::RemoveItem(LootItem *item_data, bool forget_offers)
 {
 	for (auto iter = m_item_list.begin(); iter != m_item_list.end(); ++iter) {
 		auto sitem = *iter;
 		if (sitem != item_data) { continue; }
 
 		m_is_corpse_changed = true;
+		if (forget_offers) {
+			uint32 looter_id = 0;
+			if (auto *looter = entity_list.GetClientByID(m_being_looted_by_entity_id)) {
+				looter_id = looter->CharacterID();
+			}
+			if (looter_id) {
+				NmsLootOfferForgetCorpseItem(looter_id, GetID(), GetNmsLootSerial(), sitem);
+			}
+		}
 		m_item_list.erase(iter);
 
 		uint8 material = EQ::InventoryProfile::CalcMaterialFromSlot(sitem->equip_slot); // autos to unsigned char

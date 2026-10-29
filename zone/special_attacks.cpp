@@ -2451,7 +2451,7 @@ int Mob::TryHeadShot(Mob *defender, EQ::skills::SkillType skillInUse)
 	if (
 		defender &&
 		!defender->IsOfClientBot() &&
-		skillInUse == EQ::skills::SkillArchery &&
+		(skillInUse == EQ::skills::SkillArchery || (skillInUse == EQ::skills::SkillThrowing && RuleB(Custom, ThrowingUsesArcheryBonuses))) &&
 		GetTarget() == defender &&
 		(defender->GetBodyType() == BodyType::Humanoid || !RuleB(Combat, HeadshotOnlyHumanoids)) &&
 		!defender->GetSpecialAbility(SpecialAbility::HeadshotImmunity)

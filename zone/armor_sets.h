@@ -29,6 +29,7 @@ enum ArmorSetSpellType : uint8 {
 	ArmorSetSpellWorn        = 1, // applied like an item worn effect
 	ArmorSetSpellMeleeProc   = 2, // weapon proc while the bonus is active
 	ArmorSetSpellSympathetic = 3, // spell-cast proc, checked like an item focus
+	ArmorSetSpellFocus       = 4, // focus effect (pet power, etc.), checked like an equipped item's focus
 };
 
 extern std::unordered_map<uint32, ArmorSetItemDef> g_armor_set_item_map;

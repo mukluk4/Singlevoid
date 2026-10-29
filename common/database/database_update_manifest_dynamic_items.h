@@ -1629,4 +1629,74 @@ UPDATE dynamic_affix_pool SET guaranteed = 1, weight = 0, min_value = 10, max_va
 )",
 		.content_schema_update = true,
 	},
+
+	// Nautilus Vault storage (zone/nms_vault.cpp). Item state is kept per slot, so a round trip returns the
+	// same item: attuned, ornaments, custom_data (dynamic item seeds) and guid.
+	ManifestEntry{
+		.version = 8,
+		.description = "2026_10_29_character_nms_vault",
+		.check = "SHOW TABLES LIKE 'character_nms_vault'",
+		.condition = "empty",
+		.match = "",
+		.sql = R"(
+CREATE TABLE IF NOT EXISTS character_nms_vault (
+    character_id INT UNSIGNED NOT NULL,
+    slot INT NOT NULL,
+    bag_slot INT NOT NULL DEFAULT 0,
+    item_id INT UNSIGNED NOT NULL,
+    charges SMALLINT NOT NULL DEFAULT 1,
+    aug1 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug2 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug3 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug4 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug5 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug6 INT UNSIGNED NOT NULL DEFAULT 0,
+    instnodrop TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    custom_data TEXT DEFAULT NULL,
+    ornament_icon INT UNSIGNED NOT NULL DEFAULT 0,
+    ornament_idfile INT UNSIGNED NOT NULL DEFAULT 0,
+    ornament_hero_model INT UNSIGNED NOT NULL DEFAULT 0,
+    guid BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (character_id, slot, bag_slot),
+    KEY idx_character_nms_vault_slot (character_id, slot)
+);
+)",
+		.content_schema_update = false,
+	},
+
+	// /nmsloot personal loot offers (zone/nms_loot_offers.cpp), kept so they survive zoning
+	ManifestEntry{
+		.version = 9,
+		.description = "2026_10_29_character_nms_loot_offers",
+		.check = "SHOW TABLES LIKE 'character_nms_loot_offers'",
+		.condition = "empty",
+		.match = "",
+		.sql = R"(
+CREATE TABLE IF NOT EXISTS character_nms_loot_offers (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    character_id INT UNSIGNED NOT NULL,
+    zone_id INT UNSIGNED NOT NULL DEFAULT 0,
+    instance_id INT UNSIGNED NOT NULL DEFAULT 0,
+    corpse_id INT UNSIGNED NOT NULL DEFAULT 0,
+    corpse_serial BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    item_id INT UNSIGNED NOT NULL,
+    icon INT UNSIGNED NOT NULL DEFAULT 0,
+    charges SMALLINT NOT NULL DEFAULT 1,
+    bonus TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    name VARCHAR(64) NOT NULL DEFAULT '',
+    aug1 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug2 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug3 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug4 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug5 INT UNSIGNED NOT NULL DEFAULT 0,
+    aug6 INT UNSIGNED NOT NULL DEFAULT 0,
+    passed TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    passed_from VARCHAR(64) NOT NULL DEFAULT '',
+    expires_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_character_nms_loot_offers_char (character_id, zone_id, expires_at)
+);
+)",
+		.content_schema_update = false,
+	},
 };

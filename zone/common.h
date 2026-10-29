@@ -372,6 +372,7 @@ struct StatBonuses {
 	int32	CriticalSpellChance;				//i
 	int32	SpellCritDmgIncrease;				//i
 	int32	SpellCritDmgIncNoStack;				// increase
+	int32	AACritDmgNoStackSum;				// sum of AA SPA 294 crit damage components (Custom:AACritDmgNoStackComponentsStack)
 	int32	DotCritDmgIncrease;					//i
 	int32	CriticalHealChance;					//i
 	int32	CriticalHealOverTime;				//i

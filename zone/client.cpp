@@ -60,6 +60,7 @@
 #include "zone/string_ids.h"
 #include "zone/water_map.h"
 #include "zone/worldserver.h"
+#include "zone/nms_vault.h"
 #include "zone/zonedb.h"
 
 #include <cstdlib>
@@ -697,6 +698,10 @@ Client::Client(EQStreamInterface *ieqs) : Mob(
 Client::~Client() {
 	entity_list.RemoveMobFromCloseLists(this);
 	m_close_mobs.clear();
+
+	// Despawn the vault merchant and drop this character's cached vault state. Logout and
+	// link-death reach here but not SendMerchantEnd.
+	NmsVaultOnClientDestroy(this);
 
 	if (ClientVersion() == EQ::versions::ClientVersion::RoF2 && RuleB (Parcel, EnableParcelMerchants)) {
 		DoParcelCancel();
@@ -13275,6 +13280,7 @@ std::string Client::GetBandolierItemName(uint8 bandolier_slot, uint8 slot_id)
 
 void Client::SendMerchantEnd()
 {
+	NmsVaultOnMerchantEnd(this);
 	SetMerchantSessionEntityID(0);
 
 	if (ClientVersion() == EQ::versions::ClientVersion::RoF2 && RuleB(Parcel, EnableParcelMerchants)) {

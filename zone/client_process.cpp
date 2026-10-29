@@ -42,6 +42,7 @@
 #include "zone/worldserver.h"
 #include "zone/zone.h"
 #include "zone/zonedb.h"
+#include "zone/nms_vault.h"
 
 #include <iostream>
 
@@ -1358,7 +1359,7 @@ void Client::OPMoveCoin(const EQApplicationPacket* app)
 		{
 			uint32 distance = 0;
 			NPC *banker = entity_list.GetClosestBanker(this, distance);
-			if(!banker || distance > USE_NPC_RANGE2)
+			if(!NmsVaultBankAccess(this) && (!banker || distance > USE_NPC_RANGE2))
 			{
 				auto message = fmt::format(
 					"Player tried to make use of a banker (coin move) but "
@@ -1392,7 +1393,7 @@ void Client::OPMoveCoin(const EQApplicationPacket* app)
 		{
 			uint32 distance = 0;
 			NPC *banker = entity_list.GetClosestBanker(this, distance);
-			if(!banker || distance > USE_NPC_RANGE2)
+			if(!NmsVaultBankAccess(this) && (!banker || distance > USE_NPC_RANGE2))
 			{
 				auto message = fmt::format(
 					"Player tried to make use of a banker (shared coin move) but banker [{}] is "
@@ -1450,7 +1451,7 @@ void Client::OPMoveCoin(const EQApplicationPacket* app)
 		{
 			uint32 distance = 0;
 			NPC *banker = entity_list.GetClosestBanker(this, distance);
-			if(!banker || distance > USE_NPC_RANGE2)
+			if(!NmsVaultBankAccess(this) && (!banker || distance > USE_NPC_RANGE2))
 			{
 				auto message = fmt::format(
 					"Player tried to make use of a banker(coin move) but "
@@ -1512,7 +1513,7 @@ void Client::OPMoveCoin(const EQApplicationPacket* app)
 		{
 			uint32 distance = 0;
 			NPC *banker = entity_list.GetClosestBanker(this, distance);
-			if(!banker || distance > USE_NPC_RANGE2)
+			if(!NmsVaultBankAccess(this) && (!banker || distance > USE_NPC_RANGE2))
 			{
 				auto message = fmt::format(
 					"Player tried to make use of a banker (shared coin move) but banker [{}] is "

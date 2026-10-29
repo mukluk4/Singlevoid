@@ -20,7 +20,6 @@ return {
     { zone_id = 105, short_name = "charasis",    name = "The Howling Stones",                  x = 0, y = 0, z = 4, h = 128 },
     { zone_id = 73 , short_name = "permafrost",  name = "The Permafrost Caverns",              x = 61, y = -121, z = 2, h = 256 },
     { zone_id = 128, short_name = "sleeper",     name = "The Sleeper's Tomb",                  x = 1, y = -40, z = 3, h = 128 },
-    { zone_id = 112, short_name = "velketor",    name = "Velketor's Labyrinth",                x = -65, y = 581, z = -152, h = 384 },
     { zone_id = 186, short_name = "hateplaneb",  name = "The Plane of Hate",                   x = -393, y = 656, z = 3, h = 448, version = 2 },
     { zone_id = 179, short_name = "akheva",      name = "The Akheva Ruins",                    x = 60, y = -1395, z = 22, h = 0 },
     { zone_id = 163, short_name = "griegsend",   name = "Grieg's End",                         x = 3461, y = -19, z = -5, h = 256, version = 2 },

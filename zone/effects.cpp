@@ -37,6 +37,17 @@ float Mob::GetActSpellRange(uint16 spell_id, float range)
 	return (range * extrange) / 100;
 }
 
+int Mob::GetAACritDmgNoStackPool()
+{
+	int       pool = aabonuses.AACritDmgNoStackSum;
+	const int cap  = RuleI(Custom, MaxAACritDmgFocus);
+	if (cap > 0 && pool > cap) {
+		pool = cap;
+	}
+
+	return pool;
+}
+
 int64 Mob::GetActSpellDamage(uint16 spell_id, int64 value, Mob* target) {
 	if (spells[spell_id].target_type == ST_Self) {
 		return value;
@@ -86,6 +97,9 @@ int64 Mob::GetActSpellDamage(uint16 spell_id, int64 value, Mob* target) {
 			Critical = true;
 			ratio += itembonuses.SpellCritDmgIncrease + spellbonuses.SpellCritDmgIncrease + aabonuses.SpellCritDmgIncrease;
 			ratio += itembonuses.SpellCritDmgIncNoStack + spellbonuses.SpellCritDmgIncNoStack + aabonuses.SpellCritDmgIncNoStack;
+			if (RuleB(Custom, AACritDmgNoStackComponentsStack)) {
+				ratio += GetAACritDmgNoStackPool();
+			}
 		} else if ((IsOfClientBot() && GetClass() == Class::Wizard) || (IsMerc() && GetClass() == CASTERDPS)) {
 			if ((GetLevel() >= RuleI(Spells, WizCritLevel)) && zone->random.Roll(RuleI(Spells, WizCritChance))) {
 				//Wizard innate critical chance is calculated seperately from spell effect and is not a set ratio. (20-70 is parse confirmed)
@@ -279,6 +293,9 @@ int64 Mob::GetActDoTDamage(uint16 spell_id, int64 value, Mob* target, bool from_
 	if (!spells[spell_id].good_effect && chance > 0 && (zone->random.Roll(chance))) {
 		int64 ratio = 200;
 		ratio += itembonuses.DotCritDmgIncrease + spellbonuses.DotCritDmgIncrease + aabonuses.DotCritDmgIncrease;
+		if (RuleB(Custom, AACritDmgNoStackComponentsStack) && RuleB(Custom, DoTCritsShareNoStackPool)) {
+			ratio += GetAACritDmgNoStackPool();
+		}
 		value = base_value*ratio/100;
 		value += int64(base_value*GetFocusEffect(focusImprovedDamage, spell_id, nullptr, from_buff_tic)/100)*ratio/100;
 		value += int64(base_value*GetFocusEffect(focusImprovedDamage2, spell_id, nullptr, from_buff_tic)/100)*ratio/100;

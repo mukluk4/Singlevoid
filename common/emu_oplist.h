@@ -644,5 +644,7 @@ N(OP_ZoneServerReady),
 N(OP_ZoneSpawns),
 N(OP_ZoneUnavail),
 N(OP_ResetAA),
+N(OP_NmsLootOffer),
+N(OP_NmsLootDecision),
 N(OP_UnderWorld),
 // mail and chat opcodes located in ../mail_oplist.h

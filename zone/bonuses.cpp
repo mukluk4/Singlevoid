@@ -26,6 +26,9 @@
 #include "zone/bot.h"
 #include "zone/quest_parser_collection.h"
 #include "zone/dynamic_items.h"
+#include "zone/nms_chronal_tribute.h"
+#include "zone/nms_paragon.h"
+#include "zone/nms_vault.h"
 
 #include <cstdlib>
 
@@ -65,7 +68,9 @@ void Client::CalcBonuses()
 	dynamic_item_bonuses = {};
 	CalcItemBonuses(&itembonuses);
 	CheckArmorSetBonuses(&itembonuses); // before ApplySkillBonuses: set bonuses can add dynamic affixes
+	DynamicItemsManager::CapBonuses(dynamic_item_bonuses);
 	DynamicItemsManager::ApplySkillBonuses(dynamic_item_bonuses, &itembonuses);
+	NmsParagonApplyBonuses(this, &itembonuses); // AA heroic stats count as item heroics
 	CalcHeroicBonuses(&itembonuses);
 	CalcEdibleBonuses(&itembonuses);
 	CalcSpellBonuses(&spellbonuses);
@@ -178,9 +183,18 @@ void Mob::CalcItemBonuses(StatBonuses* b) {
 	}
 
 	if (IsClient()) {
+		NmsVaultApplyLockerBonuses(CastToClient(), b);
+		NmsVaultApplyModBonuses(CastToClient(), b);
 		if (CastToClient()->GetPP().tribute_active) {
-			for (auto const &t: CastToClient()->GetPP().tributes) {
-				auto item_id = CastToClient()->LookupTributeItemID(t.tribute, t.tier);
+			for (int r = 0; r < EQ::invtype::TRIBUTE_SIZE; r++) {
+				auto const &t = CastToClient()->GetPP().tributes[r];
+				if (NmsIsChronalTribute(t.tribute) && !NmsChronalTributeActive(CastToClient(), r)) {
+					continue; // only inside a rift of its band
+				}
+
+				// A Chronal Tribute gives the benefit of the rift's band, up to the tier selected
+				const uint32 tier = NmsIsChronalTribute(t.tribute) ? NmsChronalTributeTier(CastToClient(), t.tier) : t.tier;
+				auto item_id = CastToClient()->LookupTributeItemID(t.tribute, tier);
 				if (item_id) {
 					const EQ::ItemInstance *inst = database.CreateItem(item_id);
 					if (!inst) {
@@ -1163,8 +1177,9 @@ void Mob::ApplyAABonuses(const AA::Rank &rank, StatBonuses *newbon)
 
 		case SpellEffect::CriticalSpellChance: {
 			newbon->CriticalSpellChance += base_value;
+			newbon->AACritDmgNoStackSum += limit_value;
 
-			if (limit_value > newbon->SpellCritDmgIncNoStack)
+			if (!RuleB(Custom, AACritDmgNoStackComponentsStack) && limit_value > newbon->SpellCritDmgIncNoStack)
 				newbon->SpellCritDmgIncNoStack = limit_value;
 
 			break;
