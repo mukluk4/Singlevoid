@@ -21,6 +21,7 @@
 #include "common/misc_functions.h"
 #include "common/spdat.h"
 #include "zone/client.h"
+#include "zone/dynamic_items.h"
 #include "zone/entity.h"
 #include "zone/position.h"
 #include "zone/string_ids.h"
@@ -39,6 +40,11 @@ float Mob::GetActSpellRange(uint16 spell_id, float range)
 int64 Mob::GetActSpellDamage(uint16 spell_id, int64 value, Mob* target) {
 	if (spells[spell_id].target_type == ST_Self) {
 		return value;
+	}
+
+	// Dynamic item element damage %, applied to the base so focuses and crits build on it
+	if (IsClient()) {
+		value += value * DynamicItemsManager::GetSpellDamagePct(CastToClient()->dynamic_item_bonuses, spell_id) / 100;
 	}
 
 	if (IsNPC()) {
@@ -242,6 +248,11 @@ int64 Mob::GetActDoTDamage(uint16 spell_id, int64 value, Mob* target, bool from_
 	if (target == nullptr)
 		return value;
 
+	// Dynamic item element damage % (same as direct damage)
+	if (IsClient()) {
+		value += value * DynamicItemsManager::GetSpellDamagePct(CastToClient()->dynamic_item_bonuses, spell_id) / 100;
+	}
+
 	if (IsNPC()) {
 		value += value * CastToNPC()->GetSpellFocusDMG() / 100;
 
@@ -404,6 +415,11 @@ int64 Mob::GetExtraSpellAmt(uint16 spell_id, int64 extra_spell_amt, int64 base_s
 int64 Mob::GetActSpellHealing(uint16 spell_id, int64 value, Mob* target, bool from_buff_tic) {
 	if (target == nullptr && IsBot()) {
 		target = this;
+	}
+
+	// Dynamic item healing %, applied to the base so focuses and crits build on it
+	if (IsClient()) {
+		value += value * CastToClient()->dynamic_item_bonuses.HealAmountPct / 100;
 	}
 
 	if (IsNPC()) {

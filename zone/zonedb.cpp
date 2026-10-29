@@ -1298,8 +1298,9 @@ bool ZoneDatabase::DeleteCharacterAAs(uint32 character_id)
 	return CharacterAlternateAbilitiesRepository::DeleteWhere(
 		*this,
 		fmt::format(
-			"`id` = {} AND `aa_id` NOT IN (SELECT a.first_rank_id FROM aa_ability a WHERE a.grant_only != 0)",
-			character_id
+			"`id` = {} AND `aa_id` NOT IN (SELECT a.first_rank_id FROM {} a WHERE a.grant_only != 0)",
+			character_id,
+			UseNmsAATables() ? "nms_aa_ability" : "aa_ability"
 		)
 	);
 }

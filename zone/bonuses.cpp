@@ -25,6 +25,7 @@
 #include "zone/mob.h"
 #include "zone/bot.h"
 #include "zone/quest_parser_collection.h"
+#include "zone/dynamic_items.h"
 
 #include <cstdlib>
 
@@ -61,7 +62,10 @@ void NPC::CalcBonuses()
 void Client::CalcBonuses()
 {
 	memset(&itembonuses, 0, sizeof(StatBonuses));
+	dynamic_item_bonuses = {};
 	CalcItemBonuses(&itembonuses);
+	CheckArmorSetBonuses(&itembonuses); // before ApplySkillBonuses: set bonuses can add dynamic affixes
+	DynamicItemsManager::ApplySkillBonuses(dynamic_item_bonuses, &itembonuses);
 	CalcHeroicBonuses(&itembonuses);
 	CalcEdibleBonuses(&itembonuses);
 	CalcSpellBonuses(&spellbonuses);
@@ -309,6 +313,15 @@ void Mob::AddItemBonuses(const EQ::ItemInstance* inst, StatBonuses* b, bool is_a
 	b->HeroicWIS += CalcItemBonus(item->HeroicWis);
 	b->HeroicCHA += CalcItemBonus(item->HeroicCha);
 
+	// Dynamic (seeded) items: rolled flat stats are already on the item data above. Their
+	// percentage affixes are totalled here, with the same recommended-level scaling.
+	if (IsClient() && !is_augment && !is_tribute && inst->HasDynamicStats()) {
+		auto c = CastToClient();
+		for (const auto &line : DynamicItemsManager::Instance()->Roll(*inst)) {
+			DynamicItemsManager::ApplyAffix(line.affix, CalcItemBonus(line.value), &c->dynamic_item_bonuses);
+		}
+	}
+
 	b->STRCapMod += item->HeroicStr;
 	b->STACapMod += item->HeroicSta;
 	b->DEXCapMod += item->HeroicDex;
@@ -446,7 +459,9 @@ void Mob::AddItemBonuses(const EQ::ItemInstance* inst, StatBonuses* b, bool is_a
 		}
 	}
 
-	if (item->SkillModValue != 0 && item->SkillModType <= EQ::skills::HIGHEST_SKILL) {
+	// Dynamic items show their biggest skill affix as the Skill Mod for display only; their skill
+	// affixes are all counted by DynamicItemsManager::ApplySkillBonuses
+	if (!inst->HasDynamicStats() && item->SkillModValue != 0 && item->SkillModType <= EQ::skills::HIGHEST_SKILL) {
 		if (
 			(item->SkillModValue > 0 && b->skillmod[item->SkillModType] < item->SkillModValue) ||
 			(item->SkillModValue < 0 && b->skillmod[item->SkillModType] > item->SkillModValue)

@@ -36,6 +36,7 @@ void WorldserverCLI::Version(int argc, char **argv, argh::parser &cmd, std::stri
 	j["compile_date"]            = COMPILE_DATE;
 	j["compile_time"]            = COMPILE_TIME;
 	j["custom_database_version"] = CUSTOM_BINARY_DATABASE_VERSION;
+	j["dynamic_items_database_version"] = DYNAMIC_ITEMS_BINARY_DATABASE_VERSION;
 	j["database_version"]        = CURRENT_BINARY_DATABASE_VERSION;
 	j["server_version"]          = CURRENT_VERSION;
 

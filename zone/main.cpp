@@ -50,6 +50,7 @@
 #include "zone/questmgr.h"
 #include "zone/task_manager.h"
 #include "zone/titles.h"
+#include "zone/dynamic_items.h"
 #include "zone/worldserver.h"
 #include "zone/zone_cli.h"
 #include "zone/zone_config.h"
@@ -374,6 +375,11 @@ int main(int argc, char **argv)
 	EvolvingItemsManager::Instance()->SetDatabase(&database);
 	EvolvingItemsManager::Instance()->SetContentDatabase(&content_db);
 	EvolvingItemsManager::Instance()->LoadEvolvingItems();
+
+	// Load dynamic (seeded) item definitions
+	DynamicItemsManager::Instance()->SetContentDatabase(&content_db);
+	DynamicItemsManager::Instance()->Load();
+	EQ::ItemInstance::dynamic_stats_hook = &DynamicItemsManager::ApplyToInstance;
 
 	database.GetDecayTimes(npcCorpseDecayTimes);
 

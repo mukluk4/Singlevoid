@@ -21,6 +21,7 @@
 #include "common/database/database_dump_service.h"
 #include "common/database/database_update_manifest_bots.h"
 #include "common/database/database_update_manifest_custom.h"
+#include "common/database/database_update_manifest_dynamic_items.h"
 #include "common/database/database_update_manifest.h"
 #include "common/eqemu_logsys.h"
 #include "common/http/httplib.h"
@@ -42,10 +43,14 @@ DatabaseVersion DatabaseUpdate::GetDatabaseVersions()
 
 	auto r = results.begin();
 
+	// The column is added by world on its first start with dynamic items, so a zone can find it missing
+	auto d = m_database->QueryDatabase("SELECT `dynamic_items_version` FROM `db_version` LIMIT 1");
+
 	return DatabaseVersion{
 		.server_database_version = Strings::ToInt(r[0]),
 		.bots_database_version = Strings::ToInt(r[1]),
 		.custom_database_version = Strings::ToInt(r[2]),
+		.dynamic_items_database_version = (d.Success() && d.RowCount()) ? Strings::ToInt(d.begin()[0]) : 0,
 	};
 }
 
@@ -55,6 +60,7 @@ DatabaseVersion DatabaseUpdate::GetBinaryDatabaseVersions()
 		.server_database_version = CURRENT_BINARY_DATABASE_VERSION,
 		.bots_database_version = (RuleB(Bots, Enabled) ? CURRENT_BINARY_BOTS_DATABASE_VERSION : 0),
 		.custom_database_version = CUSTOM_BINARY_DATABASE_VERSION,
+		.dynamic_items_database_version = DYNAMIC_ITEMS_BINARY_DATABASE_VERSION,
 	};
 }
 
@@ -67,6 +73,7 @@ void DatabaseUpdate::CheckDbUpdates()
 {
 	InjectCustomVersionColumn();
 	InjectBotsVersionColumn();
+	InjectDynamicItemsVersionColumn();
 	auto v = GetDatabaseVersions();
 	auto b = GetBinaryDatabaseVersions();
 	if (CheckVersionsUpToDate(v, b)) {
@@ -89,6 +96,17 @@ void DatabaseUpdate::CheckDbUpdates()
 			v.custom_database_version
 		);
 		m_database->QueryDatabase(fmt::format("UPDATE `db_version` SET `custom_version` = {}", b.custom_database_version));
+	}
+
+	if (UpdateManifest(manifest_entries_dynamic_items, v.dynamic_items_database_version, b.dynamic_items_database_version)) {
+		LogInfo(
+			"Updates ran successfully, setting dynamic items database version to [{}] from [{}]",
+			b.dynamic_items_database_version,
+			v.dynamic_items_database_version
+		);
+		m_database->QueryDatabase(
+			fmt::format("UPDATE `db_version` SET `dynamic_items_version` = {}", b.dynamic_items_database_version)
+		);
 	}
 
 	if (b.bots_database_version > 0) {
@@ -386,6 +404,14 @@ bool DatabaseUpdate::CheckVersionsUpToDate(DatabaseVersion v, DatabaseVersion b)
 		);
 	}
 
+	LogInfo(
+		"{:>8} | database [{}] binary [{}] {}",
+		"DynItems",
+		v.dynamic_items_database_version,
+		b.dynamic_items_database_version,
+		(v.dynamic_items_database_version == b.dynamic_items_database_version) ? "up to date" : "checking updates"
+	);
+
 	LogInfo("{:>8} | [server.auto_database_updates] [<green>true]", "Config");
 
 	LogInfo("{}", Strings::Repeat("-", BREAK_LENGTH));
@@ -398,7 +424,9 @@ bool DatabaseUpdate::CheckVersionsUpToDate(DatabaseVersion v, DatabaseVersion b)
 	// custom database version is optional, if not enabled then it is always up-to-date
 	bool custom_up_to_date = v.custom_database_version >= b.custom_database_version;
 
-	return server_up_to_date && bots_up_to_date && custom_up_to_date;
+	bool dynamic_items_up_to_date = v.dynamic_items_database_version >= b.dynamic_items_database_version;
+
+	return server_up_to_date && bots_up_to_date && custom_up_to_date && dynamic_items_up_to_date;
 }
 
 // checks to see if there are pending updates
@@ -425,5 +453,16 @@ void DatabaseUpdate::InjectCustomVersionColumn()
 	if (!results.Success() || results.RowCount() == 0) {
 		LogInfo("Adding custom_version column to db_version table");
 		m_database->QueryDatabase("ALTER TABLE `db_version` ADD COLUMN `custom_version` INT(11) UNSIGNED NOT NULL DEFAULT 0");
+	}
+}
+
+void DatabaseUpdate::InjectDynamicItemsVersionColumn()
+{
+	auto results = m_database->QueryDatabase("SHOW COLUMNS FROM `db_version` LIKE 'dynamic_items_version'");
+	if (!results.Success() || results.RowCount() == 0) {
+		LogInfo("Adding dynamic_items_version column to db_version table");
+		m_database->QueryDatabase(
+			"ALTER TABLE `db_version` ADD COLUMN `dynamic_items_version` INT(11) UNSIGNED NOT NULL DEFAULT 0"
+		);
 	}
 }

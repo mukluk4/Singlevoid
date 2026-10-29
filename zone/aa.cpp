@@ -1776,7 +1776,21 @@ bool ZoneDatabase::LoadAlternateAdvancementAbilities(
 {
 	abilities.clear();
 
-	const auto& aa_abilities = AaAbilityRepository::GetWhere(*this, "`enabled` = 1");
+	const bool nms_aa = UseNmsAATables();
+	if (nms_aa) {
+		LogInfo("Loading the NMS AA set (nms_aa_* tables){}", RuleB(Custom, NmsCustomAAs) ? " with the NMS custom AAs" : "");
+	}
+
+	// The AAs NMS added on top of the stock set; they need NMS spells and client files (Custom:NmsCustomAAs)
+	std::string ability_filter = "`enabled` = 1";
+	if (nms_aa && !RuleB(Custom, NmsCustomAAs)) {
+		ability_filter += " AND `id` NOT IN (16001, 17785, 17786, 17787, 17788, 17789, 17790, 17791, 17792, 17793)";
+	}
+
+	const auto& aa_abilities = AaAbilityRepository::GetWhere(
+		*this,
+		AATableFilter("aa_ability", AaAbilityRepository::SelectColumnsRaw(), ability_filter)
+	);
 
 	if (aa_abilities.empty()) {
 		LogError("Failed to load Alternate Advancement Abilities.");
@@ -1813,7 +1827,10 @@ bool ZoneDatabase::LoadAlternateAdvancementAbilities(
 
 	ranks.clear();
 
-	const auto& aa_ranks = AaRanksRepository::All(*this);
+	const auto& aa_ranks = AaRanksRepository::GetWhere(
+		*this,
+		AATableFilter("aa_ranks", AaRanksRepository::SelectColumnsRaw(), "TRUE")
+	);
 
 	if (aa_ranks.empty()) {
 		LogError("Failed to load Alternate Advancement Ability Ranks.");
@@ -1835,6 +1852,10 @@ bool ZoneDatabase::LoadAlternateAdvancementAbilities(
 		r->recast_time      = e.recast_time;
 		r->next_id          = e.next_id;
 		r->expansion        = e.expansion;
+		// Custom:AAStartLevel below 51 opens the ranks that need 51 or less at that level
+		if (r->level_req <= 51 && r->level_req > Client::AAStartLevel()) {
+			r->level_req = Client::AAStartLevel();
+		}
 		r->base_ability     = nullptr;
 		r->total_cost       = 0;
 		r->prev_id          = -1;
@@ -1850,7 +1871,10 @@ bool ZoneDatabase::LoadAlternateAdvancementAbilities(
 		ranks.size() != 1 ? "s" : ""
 	);
 
-	const auto& aa_rank_effects = AaRankEffectsRepository::All(*this);
+	const auto& aa_rank_effects = AaRankEffectsRepository::GetWhere(
+		*this,
+		AATableFilter("aa_rank_effects", AaRankEffectsRepository::SelectColumnsRaw(), "TRUE")
+	);
 
 	if (aa_rank_effects.empty()) {
 		LogError("Failed to load Alternate Advancement Ability Rank Effects.");
@@ -1881,7 +1905,10 @@ bool ZoneDatabase::LoadAlternateAdvancementAbilities(
 		aa_rank_effects.size() != 1 ? "s" : ""
 	);
 
-	const auto& aa_rank_prereqs = AaRankPrereqsRepository::All(*this);
+	const auto& aa_rank_prereqs = AaRankPrereqsRepository::GetWhere(
+		*this,
+		AATableFilter("aa_rank_prereqs", AaRankPrereqsRepository::SelectColumnsRaw(), "TRUE")
+	);
 
 	if (aa_rank_prereqs.empty()) {
 		LogError("Failed to load Alternate Advancement Ability Rank Prerequisites.");

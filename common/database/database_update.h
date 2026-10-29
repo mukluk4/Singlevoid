@@ -34,6 +34,7 @@ struct DatabaseVersion {
 	int server_database_version;
 	int bots_database_version;
 	int custom_database_version;
+	int dynamic_items_database_version;
 };
 
 class DatabaseUpdate {
@@ -63,4 +64,5 @@ private:
 	static bool CheckVersionsUpToDate(DatabaseVersion v, DatabaseVersion b);
 	void InjectBotsVersionColumn();
 	void InjectCustomVersionColumn();
+	void InjectDynamicItemsVersionColumn();
 };

@@ -537,6 +537,8 @@ public:
 	inline uint32 GetMaxFaction() { return max_faction; }
 
 	/* AAs New */
+	bool	UseNmsAATables();
+	std::string	AATableFilter(const std::string &table, const std::string &columns, const std::string &where);
 	bool	LoadAlternateAdvancementAbilities(std::unordered_map<int, std::unique_ptr<AA::Ability>> &abilities,
 											  std::unordered_map<int, std::unique_ptr<AA::Rank>> &ranks);
 	bool	LoadAlternateAdvancement(Client *c);

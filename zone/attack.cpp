@@ -2654,7 +2654,8 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 	}
 
 	//do faction hits even if we are a merchant, so long as a player killed us
-	if (!IsCharmed() && give_exp_client && !RuleB(NPC, EnableMeritBasedFaction)) {
+	const bool kill_faction_hits = RuleB(Custom, KillFactionHits);
+	if (kill_faction_hits && !IsCharmed() && give_exp_client && !RuleB(NPC, EnableMeritBasedFaction)) {
 		hate_list.DoFactionHits(GetNPCFactionID(), GetPrimaryFaction(), GetFactionAmount());
 	}
 
@@ -2698,7 +2699,7 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 				}
 
 				if (m.member) {
-					if (RuleB(NPC, EnableMeritBasedFaction)) {
+					if (kill_faction_hits && RuleB(NPC, EnableMeritBasedFaction)) {
 						m.member->SetFactionLevel(
 							m.member->CharacterID(),
 							GetNPCFactionID(),
@@ -2731,7 +2732,7 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 				if (m && m->IsClient()) {
 					Client* c = m->CastToClient();
 
-					if (RuleB(NPC, EnableMeritBasedFaction)) {
+					if (kill_faction_hits && RuleB(NPC, EnableMeritBasedFaction)) {
 						c->SetFactionLevel(
 							c->CharacterID(),
 							GetNPCFactionID(),
@@ -2765,7 +2766,7 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 				}
 			}
 
-			if (RuleB(NPC, EnableMeritBasedFaction)) {
+			if (kill_faction_hits && RuleB(NPC, EnableMeritBasedFaction)) {
 				give_exp_client->SetFactionLevel(
 					give_exp_client->CharacterID(),
 					GetNPCFactionID(),

@@ -156,6 +156,8 @@ EQ::ItemInstance::ItemInstance(const ItemInstance& copy)
 
 	m_evolving_details    = copy.m_evolving_details;
 	m_scaling             = copy.m_scaling;
+	m_dynamic_stats       = copy.m_dynamic_stats;
+	m_display_id          = copy.m_display_id;
 	m_ornamenticon        = copy.m_ornamenticon;
 	m_ornamentidfile      = copy.m_ornamentidfile;
 	m_ornament_hero_model = copy.m_ornament_hero_model;
@@ -838,7 +840,7 @@ void EQ::ItemInstance::SetCustomDataString(const std::string& str)
 	}
 }
 
-std::string EQ::ItemInstance::GetCustomData(const std::string& identifier) {
+std::string EQ::ItemInstance::GetCustomData(const std::string& identifier) const {
 	std::map<std::string, std::string>::const_iterator iter = m_custom_data.find(identifier);
 	if (iter != m_custom_data.end()) {
 		return iter->second;
@@ -850,6 +852,33 @@ std::string EQ::ItemInstance::GetCustomData(const std::string& identifier) {
 void EQ::ItemInstance::SetCustomData(const std::string& identifier, const std::string& value) {
 	DeleteCustomData(identifier);
 	m_custom_data[identifier] = value;
+
+	if (identifier == DYNAMIC_SEED_KEY && dynamic_stats_hook) {
+		dynamic_stats_hook(*this);
+	}
+}
+
+EQ::ItemInstance::DynamicStatsHook EQ::ItemInstance::dynamic_stats_hook = nullptr;
+
+void EQ::ItemInstance::SetDynamicItemData(const ItemData& data)
+{
+	if (m_scaledItem) {
+		*m_scaledItem = data;
+	} else {
+		m_scaledItem = new ItemData(data);
+	}
+
+	m_dynamic_stats = true;
+}
+
+void EQ::ItemInstance::ClearDynamicItemData()
+{
+	if (m_dynamic_stats) {
+		safe_delete(m_scaledItem);
+		m_dynamic_stats = false;
+	}
+
+	m_display_id = 0;
 }
 
 void EQ::ItemInstance::SetCustomData(const std::string& identifier, int value) {

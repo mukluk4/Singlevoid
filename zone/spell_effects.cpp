@@ -4292,7 +4292,9 @@ void Mob::BuffFadeBySlot(int slot, bool iRecalcBonuses)
 		}
 	}
 
-	for (int i=0; i < EFFECT_COUNT; i++)
+	// A suppressed buff (SPELL_SUPPRESSED, not a real spell id) had its effects removed when it was suppressed;
+	// reading spells[] with it here crashed the zone when the suppression wore off
+	for (int i=0; IsValidSpell(buffs[slot].spellid) && i < EFFECT_COUNT; i++)
 	{
 		if(IsBlankSpellEffect(buffs[slot].spellid, i))
 			continue;
@@ -6441,6 +6443,23 @@ uint16 Mob::GetSympatheticFocusEffect(focusType type, uint16 spell_id) {
 								SympatheticProcList.push_back(proc_spellid);
 						}
 					}
+				}
+			}
+		}
+	}
+
+	// Armor set bonus spell-cast procs: checked like an item focus with no proc rate of its own
+	if (IsClient()) {
+		for (const auto set_focus : CastToClient()->GetSetBonusSympatheticSpells()) {
+			if (SympatheticProcList.size() > MAX_SYMPATHETIC_PROCS) {
+				break;
+			}
+
+			proc_spellid = CalcFocusEffect(type, set_focus, spell_id);
+			if (IsValidSpell(proc_spellid)) {
+				ProcChance = GetSympatheticProcChances(spell_id, spells[set_focus].base_value[0]);
+				if (zone->random.Roll(ProcChance)) {
+					SympatheticProcList.push_back(proc_spellid);
 				}
 			}
 		}

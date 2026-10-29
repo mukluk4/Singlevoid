@@ -50,6 +50,7 @@ namespace EQ
 #include "zone/xtargetautohaters.h"
 #include "zone/zone.h"
 #include "zone/zonedb.h"
+#include "zone/armor_sets.h"
 
 #include "common/data_verification.h"
 #include "common/emu_constants.h"
@@ -251,6 +252,15 @@ public:
 	Client(EQStreamInterface * ieqs);
 	Client(); // mocking / testing
 	~Client();
+	// Dynamic items and armor sets (zone/dynamic_items.cpp, zone/armor_sets.cpp)
+	void CheckArmorSetBonuses(StatBonuses* itembonuses);
+	std::unordered_map<uint32, uint32> CountEquippedArmorSetPieces(); // set id -> pieces worn that count for this character
+	std::unordered_map<uint32, uint32> m_active_armor_set_tiers;
+	std::vector<uint16> m_set_bonus_sympathetic; // active set bonus spell-cast procs, rebuilt by CheckArmorSetBonuses
+	std::set<uint16>    m_set_bonus_procs;       // weapon procs added by set bonuses, so they can be removed
+	const std::vector<uint16> &GetSetBonusSympatheticSpells() const { return m_set_bonus_sympathetic; }
+	EQ::DynamicItemBonuses dynamic_item_bonuses;
+	uint16 GetClassesBits() const { return GetPlayerClassBit(GetClass()); } // class bitmask (multiclass servers: all classes)
 
 	void ReconnectUCS();
 	void RecordStats();
@@ -308,6 +318,8 @@ public:
 	void DoBazaarInspect(BazaarInspect_Struct &in);
 	void SendBazaarDeliveryCosts();
 	static std::string DetermineMoneyString(uint64 copper);
+	// Custom:AAStartLevel, kept between 1 and 51
+	static int AAStartLevel() { return EQ::Clamp(RuleI(Custom, AAStartLevel), 1, 51); }
 
 	void SendTraderMode(BazaarTraderBarterActions status);
 	void TraderStartTrader(const EQApplicationPacket *app);
@@ -576,6 +588,7 @@ public:
 	void BulkSendTraderInventory(uint32 char_id);
 	void SendSingleTraderItem(uint32 char_id, int serial_number);
 	void BulkSendMerchantInventory(int merchant_id, int npcid);
+	bool PassesMerchantBucket(const MerchantList& ml);
 
 	inline uint8 GetLanguageSkill(uint8 language_id) const { return m_pp.languages[language_id]; }
 
@@ -940,6 +953,8 @@ public:
 	inline uint16 MaxSkill(EQ::skills::SkillType skill_id) const { return MaxSkill(skill_id, GetClass(), GetLevel()); }
 	uint8 GetSkillTrainLevel(EQ::skills::SkillType skill_id, uint8 class_id);
 	void MaxSkills();
+	uint16 GetHighestClassSkillCap(EQ::skills::SkillType skill, uint8 level);
+	void AutoLearnForLevel(); // Custom:AutoTrainSkills / AutoScribeSpells / AutoLearnDisciplines (zone/auto_learn.cpp)
 
 	void SendTradeskillSearchResults(const std::string &query, unsigned long objtype, unsigned long someid);
 	void SendTradeskillDetails(uint32 recipe_id);

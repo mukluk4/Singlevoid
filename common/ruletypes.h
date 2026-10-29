@@ -945,6 +945,7 @@ RULE_INT(Merchant, PricePenaltyPct, 4, "Determines maximum price penalty from ha
 RULE_REAL(Merchant, ChaBonusMod, 3.45, "Determines CHA cap, from 104 CHA. 3.45 is 132 CHA at apprehensive. 0.34 is 400 CHA at apprehensive")
 RULE_REAL(Merchant, ChaPenaltyMod, 1.52, "Determines CHA bottom, up to 102 CHA. 1.52 is 37 CHA at apprehensive. 0.98 is 0 CHA at apprehensive")
 RULE_BOOL(Merchant, EnableAltCurrencySell, true, "Enables the ability to resell items to alternate currency merchants")
+RULE_INT(Merchant, DynamicItemSellRefundPct, 20, "Percent of the alternate currency cost refunded when selling a dynamic (seeded) item back to a merchant")
 RULE_BOOL(Merchant, AllowCorpse, false, "Setting whether dealers leave a corpse behind ")
 RULE_CATEGORY_END()
 
@@ -1177,6 +1178,18 @@ RULE_REAL(EvolvingItems, PercentOfGroupExperience, 0.1, "Percentage of group exp
 RULE_REAL(EvolvingItems, PercentOfRaidExperience, 0.1, "Percentage of raid experience allocated to evolving items that require experience.")
 RULE_INT(EvolvingItems, DelayUponEquipping, 30000, "Delay in ms before an evolving item will earn rewards after equipping.  Default is 30000ms or 30s.")
 RULE_BOOL(EvolvingItems, DestroyAugmentsOnEvolve, false, "If this is enabled, any augments in an item will be destroyed when the item evolves. Otherwise, send augments to the player via the parcel system (requires that the Parcel System be enabled).")
+RULE_CATEGORY_END()
+
+RULE_CATEGORY(Custom)
+RULE_BOOL(Custom, DynamicItemDisplayIds, true, "Send each dynamic (seeded) item copy to clients under its own item ID so the item window shows that copy's rolls (clients cache item data by ID)")
+RULE_BOOL(Custom, KillFactionHits, true, "Killing an NPC adjusts the killers' faction from its npc_faction entries. False: kills never change faction (quest faction still works)")
+RULE_STRING(Custom, ArmorSetTierVisuals, "13,15,17,12", "Spell effects shown on armor set tier changes: tier 1, tier 2, tier 3 gained, then tier lost (0 = none)")
+RULE_BOOL(Custom, AutoTrainSkills, false, "On level-up and login, raise skills (not tradeskills) to their caps for the character's level. Specializations stop at Skills:MaxTrainSpecializations")
+RULE_BOOL(Custom, AutoScribeSpells, false, "On level-up and login, scribe every spell the character's class has up to its level")
+RULE_BOOL(Custom, AutoLearnDisciplines, false, "On level-up and login, learn every discipline the character's class has up to its level")
+RULE_INT(Custom, AAStartLevel, 51, "Level at which characters can earn and buy AAs: 51 is stock, 1 starts AAs at the beginning. Below 51, AA ranks needing level 51 or less open at this level instead. Zones load AAs at boot")
+RULE_BOOL(Custom, NmsAATables, false, "Load AAs from the nms_aa_* tables (the NMS AA set, utils/sql/dynamic_items/nms_aa_tables.sql) instead of the stock aa_* tables. Zones load AAs at boot")
+RULE_BOOL(Custom, NmsCustomAAs, false, "With NmsAATables on, also load the AAs NMS added (Dimensional Armory, Consume Item, Necropotence...). They need the spells in nms_aa_custom_spells.sql and NMS client files")
 RULE_CATEGORY_END()
 
 #undef RULE_CATEGORY

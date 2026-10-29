@@ -6,8 +6,10 @@ set(zone_sources
     aggro.cpp
     aggromanager.cpp
     api_service.cpp
+    armor_sets.cpp
     attack.cpp
     aura.cpp
+    auto_learn.cpp
     beacon.cpp
     bonuses.cpp
     bot.cpp
@@ -32,6 +34,8 @@ set(zone_sources
     corpse.cpp
     dialogue_window.cpp
     doors.cpp
+    dynamic_items.cpp
+    dynamic_seed_parser.cpp
     dynamic_zone.cpp
     effects.cpp
     embparser.cpp
@@ -61,6 +65,7 @@ set(zone_sources
     mob_appearance.cpp
     mob_info.cpp
     mob_movement_manager.cpp
+    nms_aa_tables.cpp
     npc.cpp
     npc_scale_manager.cpp
     object.cpp
@@ -121,6 +126,7 @@ set(zone_headers
     aa_ability.h
     aggromanager.h
     api_service.h
+    armor_sets.h
     aura.h
     beacon.h
     bot.h
@@ -136,6 +142,7 @@ set(zone_headers
     corpse.h
     dialogue_window.h
     doors.h
+    dynamic_items.h
     dynamic_zone.h
     embparser.h
     embperl.h
@@ -400,6 +407,7 @@ set(gm_command_sources
     gm_commands/door.cpp
     gm_commands/door_manipulation.cpp
     gm_commands/dye.cpp
+    gm_commands/dynamic_items.cpp
     gm_commands/dz.cpp
     gm_commands/dzkickplayers.cpp
     gm_commands/editmassrespawn.cpp
