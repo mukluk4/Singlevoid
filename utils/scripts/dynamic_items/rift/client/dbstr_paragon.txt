@@ -22,3 +22,5 @@
 19460^4^Each rank grants +1 Heroic Intelligence, up to +50 Heroic Intelligence at rank 50. Rank 1 costs 15 points and each rank after costs 3 more (4,425 points for all 50).^0
 19510^1^Paragon of Wisdom^0
 19510^4^Each rank grants +1 Heroic Wisdom, up to +50 Heroic Wisdom at rank 50. Rank 1 costs 15 points and each rank after costs 3 more (4,425 points for all 50).^0
+2^17^Chronal Shard^0
+2^18^Chronal Shards^0

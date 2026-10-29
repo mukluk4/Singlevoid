@@ -1,4 +1,4 @@
-# Adds the Paragon AA names and descriptions to a player's EverQuest client file.
+# Adds the Paragon AA names and descriptions, and the Chronal Shard currency name, to a player's EverQuest client file.
 #   python add_dbstr.py <EverQuest folder>/Resources/dbstr_us.txt [dbstr_paragon.txt]
 # Lines with the same id and type are replaced; the original is kept as dbstr_us.txt.bak.
 import os, shutil, sys

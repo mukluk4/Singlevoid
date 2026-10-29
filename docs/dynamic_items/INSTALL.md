@@ -56,9 +56,17 @@ Every rule defaults to stock behavior.
      Without it those NPCs show as a placeholder model; nothing else breaks.
    - `rift/client/add_spells.py` on `spells_us.txt`, for the Ranger jewelry proc Hail of Arrows I-V (spells 43021-43025).
      Without it the proc still fires and hits, but the client doesn't know the spell.
-   - `rift/client/add_dbstr.py` on `Resources/dbstr_us.txt`, for the Paragon AA names and descriptions.
-     Without it the AA window shows those AAs without text.
+   - `rift/client/add_dbstr.py` on `Resources/dbstr_us.txt` (and on `dbstr_us.txt` in the client folder, if there is
+     one), for the Paragon AA names and descriptions and the Chronal Shard currency name.
+     Without it the AA window shows those AAs without text, and the currency shows as "Unknown DB String 2-18".
 9. **Start the server** and set any rules you want.
+    Two more things players on a stock RoF2 client will notice:
+   - **The Void's vendors** (Clockwork Gnome, Clockwork Golem and Junk Beast models) can show as the placeholder
+     model: a stock client's `thevoida_chr.txt` loads only The Void's own models. Add the models to that file
+     (the count on line 1 goes up by one per line), or give players a client with them already in it.
+   - **Unknown currencies:** the currency window lists every row of `alternate_currency`, and a stock client has no
+     name for many of PEQ's (they show as "Unknown DB String N-18"). If your server uses no currency but Chronal
+     Shards, back up the table and run `DELETE FROM alternate_currency WHERE id <> 2;`, then restart the zones.
 10. **Vault and `/nmsloot` only:** the patch adds their two opcodes to `utils/patches/patch_RoF2.conf`. If your server
     runs from a copy of that file (next to the binaries), add the two `OP_NmsLoot*` lines to that copy too.
 
@@ -167,7 +175,7 @@ What a player needs, on top of their RoF2 client:
 | File | From | Why |
 |---|---|---|
 | `dinput8.dll` and `uifiles\` | NMS `Release-NMS-Client/ClientFiles/` | the vault and `/nmsloot` windows |
-| `spells_us.txt`, `dbstr_us.txt` | your server's own files, patched with `rift/client/add_spells.py` and `add_dbstr.py` | Hail of Arrows, Paragon AA text |
+| `spells_us.txt`, `dbstr_us.txt` | your server's own files, patched with `rift/client/add_spells.py` and `add_dbstr.py` | Hail of Arrows, Paragon AA text, Chronal Shard name |
 | `Resources/GlobalLoad.txt` | patched with `rift/add_globalload.py` | rift NPC models |
 
 The simplest way is to patch one client copy yourself and hand players a zip of just those files, to copy over their
