@@ -493,6 +493,11 @@ bool Client::Process() {
 			}
 		}
 
+		// #autoskill: ready combat abilities fire on their own while auto-attacking
+		if (auto_attack && may_use_attacks && auto_attack_target != nullptr) {
+			ProcessAutoSkills(auto_attack_target);
+		}
+
 		if (viral_timer.Check() && !dead) {
 			VirusEffectProcess();
 		}
@@ -527,6 +532,7 @@ bool Client::Process() {
 			DoManaRegen();
 			DoEnduranceRegen();
 			BuffProcess();
+			ProcessServerBuffs();
 
 			if (auto_attack) {
 				ResetAFKTimer();

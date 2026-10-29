@@ -405,7 +405,9 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 	}
 
 	if (!p_timers.Expired(&database, timer, false)) {
-		Message(Chat::Red, "Ability recovery time not yet met.");
+		if (!m_auto_skill_active) {
+			Message(Chat::Red, "Ability recovery time not yet met.");
+		}
 		return;
 	}
 

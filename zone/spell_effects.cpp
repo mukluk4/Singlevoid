@@ -26,6 +26,7 @@
 #include "common/rulesys.h"
 #include "common/spdat.h"
 #include "zone/bot.h"
+#include "zone/groups.h"
 #include "zone/lua_parser.h"
 #include "zone/quest_parser_collection.h"
 #include "zone/string_ids.h"
@@ -3836,9 +3837,59 @@ snare has both of them negative, yet their range should work the same:
 }
 
 
+// Custom:SuspendGroupBuffs: a beneficial buff on a player (or their pet) is held, not counted down, while
+// its caster is in this zone and is that player or in their group, and the caster still has the spell:
+// in their spellbook (not a short buff or song), as a click effect on their gear, or as a long AA buff
+bool Mob::IsGroupSuspendableBuff(const Buffs_Struct &buff)
+{
+	if (!RuleB(Custom, SuspendGroupBuffs)) {
+		return false;
+	}
+
+	const uint16 spell_id = buff.spellid;
+	if (
+		!IsValidSpell(spell_id) ||
+		!IsBeneficialSpell(spell_id) ||
+		IsBardSong(spell_id) ||
+		IsEffectInSpell(spell_id, SpellEffect::DivineAura) ||
+		buff.caster_name[0] == '\0'
+	) {
+		return false;
+	}
+
+	Mob *owner = GetOwnerOrSelf();
+	if (!owner || !owner->IsClient()) {
+		return false;
+	}
+
+	Client *player = owner->CastToClient();
+	Client *caster = entity_list.GetClientByName(buff.caster_name);
+	if (!caster) {
+		return false;
+	}
+
+	if (caster != player) {
+		Group *group = player->GetGroup();
+		if (!group || !group->IsGroupMember(caster)) {
+			return false;
+		}
+	}
+
+	if (caster->GetInv().HasClickEffect(spell_id)) {
+		return true;
+	}
+
+	if (caster->FindSpellBookSlotBySpellID(spell_id) >= 0 && !spells[spell_id].short_buff_box) {
+		return true;
+	}
+
+	return caster->IsSuspendableAABuff(spell_id);
+}
+
 void Mob::BuffProcess()
 {
 	int buff_count = GetMaxTotalSlots();
+	bool update_pet_owner = false;
 
 	for (int buffs_i = 0; buffs_i < buff_count; ++buffs_i)
 	{
@@ -3854,7 +3905,12 @@ void Mob::BuffProcess()
 			if (spells[buffs[buffs_i].spellid].buff_duration_formula != DF_Permanent &&
 			    spells[buffs[buffs_i].spellid].buff_duration_formula != DF_Aura &&
 				buffs[buffs_i].ticsremaining != PERMANENT_BUFF_DURATION) {
-				if(!zone->BuffTimersSuspended() || !IsSuspendableSpell(buffs[buffs_i].spellid))
+				if (IsGroupSuspendableBuff(buffs[buffs_i])) {
+					// Held: resend the duration so the buff window doesn't count down either
+					buffs[buffs_i].UpdateClient = true;
+					update_pet_owner = update_pet_owner || IsPet();
+				}
+				else if(!zone->BuffTimersSuspended() || !IsSuspendableSpell(buffs[buffs_i].spellid))
 				{
 					--buffs[buffs_i].ticsremaining;
 
@@ -3885,6 +3941,10 @@ void Mob::BuffProcess()
 				}
 			}
 		}
+	}
+
+	if (update_pet_owner && GetOwner() && GetOwner()->IsClient()) {
+		SendPetBuffsToClient();
 	}
 }
 

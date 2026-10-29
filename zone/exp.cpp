@@ -177,6 +177,11 @@ uint64 Client::CalcEXP(uint8 consider_level, bool ignore_modifiers) {
 			in_add_exp *= RuleR(Character, FinalExpMultiplier);
 		}
 
+		// Echo of Luck server buff (Custom:PermanentServerBuffsEnabled)
+		if (RuleB(Custom, PermanentServerBuffsEnabled)) {
+			in_add_exp = static_cast<uint64>(in_add_exp * 1.5);
+		}
+
 		if (RuleB(Character, EnableCharacterEXPMods)) {
 			in_add_exp *= zone->GetEXPModifier(this);
 		}
@@ -472,6 +477,11 @@ void Client::CalculateExp(uint64 in_add_exp, uint64 &add_exp, uint64 &add_aaxp, 
 
 	if (RuleR(Character, FinalExpMultiplier) >= 0) {
 		add_exp *= RuleR(Character, FinalExpMultiplier);
+	}
+
+	// Echo of Luck server buff (Custom:PermanentServerBuffsEnabled)
+	if (RuleB(Custom, PermanentServerBuffsEnabled)) {
+		add_exp = static_cast<uint64>(add_exp * 1.5);
 	}
 
 	if (RuleB(Character, EnableCharacterEXPMods)) {

@@ -73,6 +73,8 @@ namespace EQ
 #include "common/repositories/trader_repository.h"
 #include "common/seperator.h"
 #include "common/timer.h"
+
+#include <unordered_set>
 #include "common/zone_store.h"
 
 #include <cfloat>
@@ -941,6 +943,20 @@ public:
 	uint32 GetRawSkill(EQ::skills::SkillType skill_id) const { if (skill_id <= EQ::skills::HIGHEST_SKILL) { return(m_pp.skills[skill_id]); } return 0; }
 	bool HasSkill(EQ::skills::SkillType skill_id) const;
 	bool CanHaveSkill(EQ::skills::SkillType skill_id) const;
+
+	// #autoskill (Custom:AutoSkill): combat abilities fired automatically during auto-attack
+	static const std::vector<EQ::skills::SkillType>& GetAvailableAutoSkills();
+	std::vector<EQ::skills::SkillType> GetAutoSkillsList() const;
+	bool GetAutoSkillStatus(EQ::skills::SkillType skill_id);
+	void SetAutoSkillStatus(EQ::skills::SkillType skill_id, bool enabled);
+	void ProcessAutoSkills(Mob *target);
+
+	// Custom:SuspendGroupBuffs: AA buffs that last at least as long as their reuse timer
+	bool IsSuspendableAABuff(uint16 spell_id) const { return m_suspendable_aa.find(spell_id) != m_suspendable_aa.end(); }
+
+	// Custom:PermanentServerBuffsEnabled: keeps the Echo server buffs on this player and their pet while the
+	// rule is on, and takes them off once it is turned off. Runs every buff tick.
+	void ProcessServerBuffs();
 	void SetSkill(EQ::skills::SkillType skill_num, uint16 value);
 	void AddSkill(EQ::skills::SkillType skillid, uint16 value);
 	void CheckSpecializeIncrease(uint16 spell_id);
@@ -2168,6 +2184,10 @@ private:
 	Object* m_tradeskill_object;
 	PetInfo m_petinfo; // current pet data, used while loading from and saving to DB
 	PetInfo m_suspendedminion; // pet data for our suspended minion.
+	std::map<EQ::skills::SkillType, bool> m_autoskill; // #autoskill choices, cached from data buckets
+	Timer m_autoskill_timer;
+	bool m_auto_skill_active = false; // OPCombatAbility called by #autoskill: no "not ready" messages
+	std::unordered_set<uint16> m_suspendable_aa;
 	MercInfo m_mercinfo[MAXMERCS]; // current mercenary
 	InspectMessage_Struct m_inspect_message;
 	bool temp_pvp;

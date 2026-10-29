@@ -156,6 +156,9 @@ namespace EQ
 		// Check if player has a specific augment equipped by Item ID
 		bool HasAugmentEquippedByID(uint32 item_id);
 
+		// Check whether an item (or one of its augments) worn or in the main inventory and its bags clicks for this spell
+		bool HasClickEffect(uint32 spell_id);
+
 		// Check how many of a specific augment the player has equipped by Item ID
 		uint32 CountAugmentEquippedByID(uint32 item_id);
 

@@ -1217,6 +1217,9 @@ RULE_INT(Custom, NmsLootOfferExpireSeconds, 300, "Seconds before an unclaimed /n
 RULE_BOOL(Custom, NmsLootEmptyGroupCorpse, true, "With /nmsloot offers going to 2 or more players, the corpse's loot table items are removed (quest-added items stay) and an emptied corpse decays at once. A lone player keeps the corpse loot too")
 RULE_BOOL(Custom, NmsAATables, false, "Load AAs from the nms_aa_* tables (the NMS AA set, utils/sql/dynamic_items/nms_aa_tables.sql) instead of the stock aa_* tables. Zones load AAs at boot")
 RULE_BOOL(Custom, NmsCustomAAs, false, "With NmsAATables on, also load the AAs NMS added (Dimensional Armory, Consume Item, Necropotence...). They need the spells in nms_aa_custom_spells.sql and NMS client files")
+RULE_BOOL(Custom, AutoSkill, false, "#autoskill: players pick combat abilities (Kick, Bash, Backstab, Frenzy, Taunt, monk strikes) that fire on their own whenever they are ready during auto-attack. Off = no #autoskill")
+RULE_BOOL(Custom, SuspendGroupBuffs, false, "Beneficial buffs on a player or their pet stop counting down while the caster is in the same zone and is that player or in their group, and still has the spell (spellbook, a click effect on gear, or a long AA buff). Held buffs and pets also survive death")
+RULE_BOOL(Custom, PermanentServerBuffsEnabled, false, "The Echo server buffs (Echo of Experience 43002, Echo of Selo 43005, Echo of Power 36856, Echo of Luck 17779) on every player and pet in every zone. Turning it off and reloading rules removes them. Spells from utils/sql/dynamic_items/08_server_buffs.sql")
 RULE_CATEGORY_END()
 
 #undef RULE_CATEGORY

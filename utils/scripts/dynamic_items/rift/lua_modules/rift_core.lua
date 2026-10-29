@@ -226,19 +226,22 @@ function rift.apply_tier_scaling(npc, tier, is_boss)
     npc:SetSpecialAbility(SPECIAL_COUNTER_AVOID_DAMAGE, 1)
     npc:SetSpecialAbilityParam(SPECIAL_COUNTER_AVOID_DAMAGE, 0, by_tier(cfg.counter_avoid, tier or 1))
 
-    local steps = (tier or 1) - 1
-    if steps <= 0 then return end
+    -- Every rift NPC's HP and damage are scaled by hp_multiplier / dmg_multiplier (rift_config.lua), at every tier
+    local hp_mult  = cfg.hp_multiplier or 1.0
+    local dmg_mult = cfg.dmg_multiplier or 1.0
+    local steps = math.max(0, (tier or 1) - 1)
+    if steps == 0 and hp_mult == 1.0 and dmg_mult == 1.0 then return end
 
     local hp_step, dmg_step = 0.15, 0.08
     if is_boss then
         hp_step, dmg_step = 0.25, 0.10
     end
 
-    local hp_factor  = 1.0 + hp_step * steps
-    local dmg_factor = 1.0 + dmg_step * steps
+    local hp_factor  = (1.0 + hp_step * steps) * hp_mult
+    local dmg_factor = (1.0 + dmg_step * steps) * dmg_mult
     local def_factor = 1.0 + 0.03 * steps
 
-    npc:ModifyNPCStat("max_hp",  tostring(math.floor(npc:GetMaxHP() * hp_factor)))
+    npc:ModifyNPCStat("max_hp",  tostring(math.max(1, math.floor(npc:GetMaxHP() * hp_factor))))
     npc:ModifyNPCStat("min_hit", tostring(math.floor(npc:GetMinDMG() * dmg_factor)))
     npc:ModifyNPCStat("max_hit", tostring(math.floor(npc:GetMaxDMG() * dmg_factor)))
     -- Spell damage (nukes, DoTs, champion and Guardian AoEs) scales like melee damage

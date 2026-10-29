@@ -3587,6 +3587,7 @@ void Client::Handle_OP_AutoAttack(const EQApplicationPacket *app)
 		attack_timer.Disable();
 		ranged_timer.Disable();
 		attack_dw_timer.Disable();
+		m_autoskill_timer.Disable();
 
 		m_AutoAttackPosition       = glm::vec4();
 		m_AutoAttackTargetLocation = glm::vec3();

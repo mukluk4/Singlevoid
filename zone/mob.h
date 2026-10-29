@@ -441,6 +441,7 @@ public:
 
 	//Buff
 	void BuffProcess();
+	bool IsGroupSuspendableBuff(const Buffs_Struct &buff);
 	virtual void DoBuffTic(const Buffs_Struct &buff, int slot, Mob* caster = nullptr);
 	void BuffFadeBySpellID(uint16 spell_id);
 	void BuffFadeBySpellIDAndCaster(uint16 spell_id, uint16 caster_id);

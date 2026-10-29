@@ -15,9 +15,15 @@ return {
     -- spawn2/doors/zone version that holds the rift copy of each zone (gen_rift_zones.py)
     instance_version = 1,
 
-    time_limit     = 900,     -- seconds to kill the Guardian
+    time_limit     = 1200,    -- seconds to kill the Guardian
     instance_grace = 180,     -- extra instance life so players can walk out after a fail
     max_tier       = 500,     -- hard cap; below it each player's own progression is the ceiling
+
+    -- Multiplies every rift NPC's HP (trash, elites, Guardian) at every tier. The base HP and the per-tier
+    -- growth were tuned on a three-class server; a single class does about a third of that damage.
+    hp_multiplier  = 0.25,
+    -- Same for their melee and spell damage (NMS characters also have three classes' worth of HP and AC)
+    dmg_multiplier = 0.5,
 
     -- Character data bucket holding the deepest clear; tier gear vendor items are hidden until it reaches
     -- their unlock tier (merchantlist bucket_name / bucket_value, comparison 2 = >=)
@@ -25,7 +31,7 @@ return {
 
     -- Progress to a full rift (10000 = 100.00%) and what each kill is worth
     target_progress = 10000,
-    progress        = { trash = 100, elite = 400 },                -- 1% / 4%
+    progress        = { trash = 250, elite = 1000 },               -- 2.5% / 10%: about 40 kills to the Guardian
     progress_step   = 5,                                            -- announce every 5%
     pylon_at        = { 25, 50, 75 },                               -- % progress that spawns a pylon
     time_warnings   = { 720, 540, 360, 180, 60 },                   -- seconds left that get a warning

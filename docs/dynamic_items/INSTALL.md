@@ -46,11 +46,14 @@ Every rule defaults to stock behavior.
    - `05_sinks.sql`: Chronal Tributes 90-93, the Paragon AAs and the Chronal Artificer (`#reforge`) in The Void.
    - `06_paragon_nms_aa.sql`: only if you use the NMS AA set (`Custom:NmsAATables`); run it after `nms_aa_tables.sql`.
    - `07_vault_key.sql`: only if you turn on the Nautilus Vault.
+   - `08_server_buffs.sql`: only if you use the Echo server buffs (`Custom:PermanentServerBuffsEnabled`).
+   - `09_void_soulbinder.sql`: a soulbinder in The Void, beside Zebuxoruk.
 6. **Run `shared_memory`**: the new items and spells load from it.
 7. **Copy the rift scripts** (see `utils/scripts/dynamic_items/README.md`):
    - `rift/lua_modules/*.lua` into your `lua_modules` folder;
    - `rift/quests/global/Rift_*.lua` into `quests/global/`;
-   - `rift/quests/thevoida/459000.lua` (Zebuxoruk) and `1200050.lua` (the Chronal Artificer) into `quests/thevoida/`.
+   - `rift/quests/thevoida/459000.lua` (Zebuxoruk), `1200050.lua` (the Chronal Artificer) and
+     `Soulbinder_Ilsara.pl` (with `09_void_soulbinder.sql`) into `quests/thevoida/`.
 8. **Players** patch three client files (each script keeps a `.bak` of the original):
    - `rift/add_globalload.py` on `Resources/GlobalLoad.txt`, so the Guardian, Pylon and Portal models render.
      Without it those NPCs show as a placeholder model; nothing else breaks.
@@ -80,7 +83,9 @@ The SQL was generated from stock PEQ. If your database differs a lot, regenerate
 - **The run:** a random zone from the pool, full of Anachronisms that scale with the tier.
   - Kills fill a progress bar; pylons spawn at 25/50/75%.
   - At 100% the Rift Guardian appears.
-  - Kill it within 15 minutes.
+  - Kill it within 20 minutes of opening the rift.
+  - Rift NPC HP and damage are scaled by `hp_multiplier` (0.25) and `dmg_multiplier` (0.5), tuned for
+    single-class characters; 1.0 is NMS's three-class balance. Trash is worth 2.5% and elites 10%, so about 40 kills call the Guardian.
 - **Rewards:** each player gets Chronal Shards (5 + 2 per tier, +25% under 10 minutes) and 1,000 platinum per tier.
   A clear one past their deepest raises their progression.
 - **Resists:** rift NPC spells are harder to resist from tier 1 (400 + 2.8 per tier, at most 1,200), so stacking
@@ -131,8 +136,31 @@ The SQL was generated from stock PEQ. If your database differs a lot, regenerate
 | `Custom:NmsLootOffers` | false | `/nmsloot` personal loot rolls. Needs the NMS client add-on |
 | `Custom:NmsLootOfferExpireSeconds` | 300 | Seconds an unclaimed `/nmsloot` offer lasts |
 | `Custom:NmsLootEmptyGroupCorpse` | true | With offers going to 2+ players, the corpse's loot table items are removed (quest items stay) |
+| `Custom:AutoSkill` | false | `#autoskill`: chosen combat abilities fire on their own during auto-attack |
+| `Custom:SuspendGroupBuffs` | false | Buffs from yourself or your group stop counting down while the caster is in the zone; they and summoned pets survive death |
+| `Custom:PermanentServerBuffsEnabled` | false | The four Echo server buffs on every player and pet (`08_server_buffs.sql`) |
 
 Zones load AAs when they boot, so the three AA rules need a zone restart.
+
+## Quality of life
+
+- **`#autoskill`** (`Custom:AutoSkill`): `#autoskill list` shows the combat abilities a character's class has
+  (Kick, Bash, Backstab, Frenzy, Taunt, the monk strikes); `#autoskill <name or id> on|off` sets one to fire on its own
+  while auto-attacking, as soon as its reuse timer allows. Choices are saved per character (`autoskill.<skill id>`
+  data buckets). It goes through the same path as pressing the button, so range, facing and reuse rules are unchanged.
+  Bash only fires with a shield (or a two-hander and 2 Hand Bash), except for Ogres, Trolls and Barbarians. The
+  hotbar buttons don't show the cooldown the server started, so a button can look ready when it isn't.
+- **Buffs that hold** (`Custom:SuspendGroupBuffs`): every 6-second tick, a beneficial buff on a player, or on their
+  pet, is held instead of counting down when its caster is in the same zone, is that player or in their group, and
+  still has the spell: in their spellbook (not a short-duration buff or a bard song), as a click effect on gear or an
+  augment (worn, in the main inventory or in a bag), or as an AA whose buff lasts at least as long as its reuse timer.
+  Divine Aura spells are never held. Held buffs stay through death, and so does a summoned pet the player can still
+  cast or click: it is saved when they die and comes back with its buffs when they zone in after respawning.
+- **Echo server buffs** (`Custom:PermanentServerBuffsEnabled`, spells from `08_server_buffs.sql`): while the rule is
+  on, every player and their pet keeps Echo of Experience (+50% experience), Echo of Selo (run speed), Echo of Power
+  (HP, mana, AC, stats, haste) and Echo of Luck; Echo of Luck's +50% experience is applied by the zone. Turn the
+  rule off and `#reload rules` to remove them, for example after a holiday. Players need a `spells_us.txt` with these
+  four spells. Add `43002,43005,36856,17779` to `Spells:AlwaysStackSpells` so they stack with everything.
 
 ## Sinks
 

@@ -1903,6 +1903,29 @@ bool Client::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::Skil
 	InterruptSpell();
 
 	Mob* m_pet = GetPet();
+
+	// Custom:SuspendGroupBuffs: a summoned pet the player can still cast (spellbook or click effect) survives
+	// death. It is saved here and comes back, with its buffs, when the player zones in after respawning.
+	bool pet_saved = false;
+	if (RuleB(Custom, SuspendGroupBuffs)) {
+		memset(&m_petinfo, 0, sizeof(struct PetInfo));
+		if (m_pet && m_pet->IsNPC() && !m_pet->IsCharmed()) {
+			NPC *pet = m_pet->CastToNPC();
+			const uint16 pet_spell = pet->GetPetSpellID();
+			if (pet_spell && (FindSpellBookSlotBySpellID(pet_spell) >= 0 || GetInv().HasClickEffect(pet_spell))) {
+				m_petinfo.SpellID  = pet_spell;
+				m_petinfo.HP       = pet->GetHP();
+				m_petinfo.Mana     = pet->GetMana();
+				pet->GetPetState(m_petinfo.Buffs, m_petinfo.Items, m_petinfo.Name);
+				m_petinfo.petpower = pet->GetPetPower();
+				m_petinfo.size     = pet->GetSize();
+				m_petinfo.taunting = pet->IsTaunting();
+				pet_saved = true;
+			}
+		}
+		database.SavePetInfo(this);
+	}
+
 	SetPet(0);
 	SetHorseId(0);
 	ShieldAbilityClearVariables();
@@ -1910,6 +1933,10 @@ bool Client::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::Skil
 
 	if (m_pet && m_pet->IsCharmed()) {
 		m_pet->BuffFadeByEffect(SpellEffect::Charm);
+	}
+
+	if (pet_saved) {
+		m_pet->CastToNPC()->Depop();
 	}
 
 	if (GetMerc()) {

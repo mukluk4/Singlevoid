@@ -994,6 +994,15 @@ void Client::SendAlternateAdvancementRank(int aa_id, int level) {
 		outapp->WriteSInt32(prereq.second);
 	}
 
+	// Custom:SuspendGroupBuffs: an AA buff that lasts at least as long as its reuse timer can be held
+	if (RuleB(Custom, SuspendGroupBuffs) && IsValidSpell(rank->spell)) {
+		const auto &spell   = spells[rank->spell];
+		const int  duration = CalcBuffDuration_formula(GetLevel(), spell.buff_duration_formula, spell.buff_duration) * 6;
+		if (duration >= static_cast<int>(rank->recast_time)) {
+			m_suspendable_aa.insert(static_cast<uint16>(rank->spell));
+		}
+	}
+
 	QueuePacket(outapp);
 	safe_delete(outapp);
 }

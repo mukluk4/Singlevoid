@@ -656,6 +656,52 @@ uint32 EQ::InventoryProfile::CountItemEquippedByID(uint32 item_id)
 	return quantity;
 }
 
+bool EQ::InventoryProfile::HasClickEffect(uint32 spell_id)
+{
+	auto clicks_for = [this, spell_id](int16 slot_id) {
+		const ItemInstance *item = GetItem(slot_id);
+		if (!item || !item->GetItem()) {
+			return false;
+		}
+
+		if (item->GetItem()->Click.Effect == static_cast<int32>(spell_id)) {
+			return true;
+		}
+
+		for (uint8 aug_slot = invaug::SOCKET_BEGIN; aug_slot <= invaug::SOCKET_END; ++aug_slot) {
+			const ItemInstance *aug = item->GetAugment(aug_slot);
+			if (aug && aug->GetItem() && aug->GetItem()->Click.Effect == static_cast<int32>(spell_id)) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	for (int16 slot_id = invslot::EQUIPMENT_BEGIN; slot_id <= invslot::EQUIPMENT_END; ++slot_id) {
+		if (clicks_for(slot_id)) {
+			return true;
+		}
+	}
+
+	for (int16 slot_id = invslot::GENERAL_BEGIN; slot_id <= invslot::GENERAL_END; ++slot_id) {
+		if (clicks_for(slot_id)) {
+			return true;
+		}
+
+		const ItemInstance *bag = GetItem(slot_id);
+		if (bag && bag->GetItem() && bag->GetItem()->IsClassBag()) {
+			for (int16 bag_slot = 0; bag_slot < bag->GetItem()->BagSlots; ++bag_slot) {
+				if (clicks_for(CalcSlotId(slot_id, static_cast<uint8>(bag_slot)))) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 //This function has a flaw in that it only returns the last stack that it looked at
 //when quantity is greater than 1 and not all of quantity can be found in 1 stack.
 int16 EQ::InventoryProfile::HasItem(uint32 item_id, uint8 quantity, uint8 where)

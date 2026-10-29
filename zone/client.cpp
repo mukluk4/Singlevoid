@@ -1056,7 +1056,8 @@ bool Client::Save(uint8 iCommitNow) {
 		m_petinfo.petpower = pet->GetPetPower();
 		m_petinfo.size = pet->GetSize();
 		m_petinfo.taunting = pet->CastToNPC()->IsTaunting();
-	} else {
+	} else if (!dead || !RuleB(Custom, SuspendGroupBuffs)) {
+		// Dead with Custom:SuspendGroupBuffs: keep the pet Client::Death saved for the respawn
 		memset(&m_petinfo, 0, sizeof(struct PetInfo));
 	}
 	database.SavePetInfo(this);
@@ -3176,6 +3177,148 @@ void Client::CheckLanguageSkillIncrease(uint8 language_id, uint8 teacher_skill) 
 bool Client::HasSkill(EQ::skills::SkillType skill_id) const
 {
 	return GetSkill(skill_id) > 0 && CanHaveSkill(skill_id);
+}
+
+const std::vector<EQ::skills::SkillType>& Client::GetAvailableAutoSkills()
+{
+	static const std::vector<EQ::skills::SkillType> skills = {
+		EQ::skills::SkillBackstab,
+		EQ::skills::SkillBash,
+		EQ::skills::SkillTigerClaw,
+		EQ::skills::SkillEagleStrike,
+		EQ::skills::SkillDragonPunch,
+		EQ::skills::SkillFlyingKick,
+		EQ::skills::SkillRoundKick,
+		EQ::skills::SkillKick,
+		EQ::skills::SkillFrenzy,
+		EQ::skills::SkillTaunt
+	};
+	return skills;
+}
+
+std::vector<EQ::skills::SkillType> Client::GetAutoSkillsList() const
+{
+	std::vector<EQ::skills::SkillType> l;
+	for (const auto skill : GetAvailableAutoSkills()) {
+		if (CanHaveSkill(skill)) {
+			l.push_back(skill);
+		}
+	}
+	return l;
+}
+
+bool Client::GetAutoSkillStatus(EQ::skills::SkillType skill_id)
+{
+	auto it = m_autoskill.find(skill_id);
+	if (it != m_autoskill.end()) {
+		return it->second;
+	}
+
+	const bool status = Strings::ToBool(GetBucket(fmt::format("autoskill.{}", static_cast<int>(skill_id))));
+	m_autoskill[skill_id] = status;
+	return status;
+}
+
+void Client::SetAutoSkillStatus(EQ::skills::SkillType skill_id, bool enabled)
+{
+	m_autoskill[skill_id] = enabled;
+	SetBucket(fmt::format("autoskill.{}", static_cast<int>(skill_id)), enabled ? "1" : "0");
+}
+
+// Called from the client process loop while auto-attacking: every half second, fire each #autoskill
+// ability that is ready, through the same path as pressing its button
+void Client::ProcessAutoSkills(Mob *target)
+{
+	if (!RuleB(Custom, AutoSkill) || !target || target == this || target->IsClient()) {
+		return;
+	}
+
+	if (!m_autoskill_timer.Enabled()) {
+		m_autoskill_timer.Start(500);
+	}
+
+	if (!m_autoskill_timer.Check()) {
+		return;
+	}
+
+	for (const auto skill : GetAutoSkillsList()) {
+		if (!GetAutoSkillStatus(skill) || !HasSkill(skill)) {
+			continue;
+		}
+
+		if (skill == EQ::skills::SkillTaunt) {
+			if (
+				!target->IsNPC() ||
+				!zone->CanDoCombat() ||
+				!p_timers.Expired(&database, pTimerTaunt, false) ||
+				DistanceSquared(GetPosition(), target->GetPosition()) >
+				RuleI(Skills, MaximumTauntDistance) * RuleI(Skills, MaximumTauntDistance)
+			) {
+				continue;
+			}
+
+			p_timers.Start(pTimerTaunt, TauntReuseTime - 1);
+			Taunt(target->CastToNPC(), false);
+			continue;
+		}
+
+		// Bash needs a shield (or a two-hander with 2 Hand Bash), except for the races that slam
+		if (
+			skill == EQ::skills::SkillBash &&
+			GetRace() != Race::Ogre && GetRace() != Race::Troll && GetRace() != Race::Barbarian &&
+			!(HasShieldEquipped() || (GetAA(aa2HandBash) >= 1 && HasTwoHanderEquipped()))
+		) {
+			continue;
+		}
+
+		CombatAbility_Struct ca{};
+		ca.m_target = target->GetID();
+		ca.m_atk    = 100;
+		ca.m_skill  = skill;
+
+		m_auto_skill_active = true;
+		OPCombatAbility(&ca);
+		m_auto_skill_active = false;
+	}
+}
+
+namespace {
+	// Echo of Experience, Echo of Selo, Echo of Power, Echo of Luck (utils/sql/dynamic_items/08_server_buffs.sql)
+	constexpr uint16 SERVER_BUFF_SPELLS[] = { 43002, 43005, 36856, 17779 };
+
+	// Returns true when something was added
+	bool SyncServerBuffs(Mob *m, bool on)
+	{
+		bool added = false;
+		for (const auto spell_id : SERVER_BUFF_SPELLS) {
+			if (!IsValidSpell(spell_id)) {
+				continue;
+			}
+
+			const bool has = m->FindBuff(spell_id);
+			if (on && !has) {
+				m->ApplySpellBuff(spell_id, -1); // permanent
+				added = true;
+			} else if (!on && has) {
+				m->BuffFadeBySpellID(spell_id);
+			}
+		}
+		return added;
+	}
+}
+
+void Client::ProcessServerBuffs()
+{
+	const bool on = RuleB(Custom, PermanentServerBuffsEnabled);
+
+	const bool added = SyncServerBuffs(this, on);
+	if (GetPet()) {
+		SyncServerBuffs(GetPet(), on);
+	}
+
+	if (added) {
+		Message(Chat::Yellow, "You feel a surge of power. (Server buffs have been applied to you)");
+	}
 }
 
 bool Client::CanHaveSkill(EQ::skills::SkillType skill_id) const
