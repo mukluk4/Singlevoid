@@ -3,7 +3,7 @@
 - **Dynamic items:** gear whose stats roll once, when bought from an alternate currency vendor. Only a seed is
   stored on the item, so retuning the affix tables retunes every copy already owned.
 - **Armor sets:** set bonuses at piece thresholds, including worn effects and procs.
-- **Greater Rifts:** timed, tiered runs through instanced copies of 27 zones, opened by Zebuxoruk in The Void. Clears pay
+- **Greater Rifts:** timed, tiered runs through instanced copies of 26 zones, opened by Zebuxoruk in The Void. Clears pay
   Chronal Shards (and platinum), which buy class gear in five tiers from the vendors in The Void.
 - **Sinks:** reforging one line of a rolled item (`#reforge`), Chronal Tributes that only work inside rifts, and
   Paragon AAs (long, rising-cost AA lines).
@@ -42,7 +42,7 @@ Every rule defaults to stock behavior.
    - `01_rift_base.sql`: the shell item, the Chronal Shard currency, the rift NPCs and spawngroups, and Zebuxoruk. It also opens The Void.
    - `02_class_sets.sql`: tier 1 class armor (16 classes x 7 pieces), set bonuses, and the Chronal Quartermaster's list.
    - `03_tier_gear.sql`: armor tiers 2-5, jewelry and augments for tiers 1-5, their set bonuses, 34 custom spells, and 14 tier vendors.
-   - `04_rift_zones.sql`: the rift copies of the 27 zones.
+   - `04_rift_zones.sql`: the rift copies of the zones (it still has a Solusek's Eye copy, which the rift pool no longer picks).
    - `05_sinks.sql`: Chronal Tributes 90-93, the Paragon AAs and the Chronal Artificer (`#reforge`) in The Void.
    - `06_paragon_nms_aa.sql`: only if you use the NMS AA set (`Custom:NmsAATables`); run it after `nms_aa_tables.sql`.
    - `07_vault_key.sql`: only if you turn on the Nautilus Vault.

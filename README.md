@@ -1,3 +1,24 @@
+# Singlevoid
+
+Stock single-class [EQEmu](https://github.com/EQEmu/EQEmu) with the Voidforged endgame added on top as an
+optional package. Every feature is behind a rule or an SQL file you choose to load, and every rule defaults
+to stock behavior.
+
+- **Greater Rifts:** timed, tiered (1 to 500) runs through instanced copies of classic dungeons, opened by
+  Zebuxoruk in The Void, paying Chronal Shards and platinum.
+- **Rolled rift gear:** five tiers of class armor, jewelry and augments whose stats roll once on purchase,
+  with set bonuses at 2/4/8 and 3/6/9 pieces.
+- **Sinks:** `#reforge`, rift-only Chronal Tributes and the Paragon AA lines.
+- **Quality of life:** `#autoskill`, buffs that hold while their caster is around, the Echo server buffs,
+  and optionally NMS's Nautilus Vault and `/nmsloot` (those two need the NMS client add-on).
+
+Setup, rules and client files: [`docs/dynamic_items/INSTALL.md`](docs/dynamic_items/INSTALL.md).
+The SQL is in `utils/sql/dynamic_items/`, the rift scripts and generators in `utils/scripts/dynamic_items/`.
+
+The rest of this README is EQEmu's own.
+
+---
+
 <h1 align="center">EQEmulator Server Platform</h1>
 
 <p align="center">
