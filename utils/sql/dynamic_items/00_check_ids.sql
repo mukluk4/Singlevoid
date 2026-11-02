@@ -1,7 +1,7 @@
 -- Dynamic items + Greater Rifts: run this BEFORE 01-04 on a database that isn't stock PEQ.
 -- It lists rows of yours that the package would overwrite or delete. Every count should be 0.
 -- (Once the package is installed its own spells count here; the other checks skip the package's rows.)
--- Ranges: items 800002, 900101-900916, 940000-964999; spells 50001-50024; npc_types / merchants 1200000-1200050;
+-- Ranges: items 800002, 900101-900916, 940000-964999; spells 44001-44029; npc_types / merchants 1200000-1200050;
 -- spawngroups 5003834, 5003835, 5003837; alternate currency 2; armor sets 101-516 and 1101-1516.
 -- Optional files: 08 (spells 17779, 36856, 43002, 43005), 09 (npc_types 1200060, spawngroup 5003853).
 
@@ -10,7 +10,7 @@ SELECT 'items' AS what, COUNT(*) AS yours FROM items
     OR (id BETWEEN 900101 AND 900916 AND id NOT IN (SELECT item_id FROM dynamic_items) AND id <> 900101)
     OR (id BETWEEN 940000 AND 964999 AND id NOT IN (SELECT item_id FROM dynamic_items) AND itemtype <> 54)
 UNION ALL
-SELECT 'spells_new', COUNT(*) FROM spells_new WHERE id BETWEEN 50001 AND 50024
+SELECT 'spells_new', COUNT(*) FROM spells_new WHERE id BETWEEN 44001 AND 44029
 UNION ALL
 SELECT 'npc_types', COUNT(*) FROM npc_types
  WHERE id BETWEEN 1200000 AND 1200050
