@@ -534,6 +534,10 @@ bool Client::Process() {
 			BuffProcess();
 			ProcessServerBuffs();
 
+			if (!dead) {
+				NmsVaultKeepClickies(this);
+			}
+
 			if (auto_attack) {
 				ResetAFKTimer();
 			}
