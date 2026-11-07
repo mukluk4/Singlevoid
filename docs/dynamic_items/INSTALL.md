@@ -41,7 +41,7 @@ Every rule defaults to stock behavior.
    - `00_check_ids.sql`: only if your database isn't stock PEQ. Every count should be 0.
    - `01_rift_base.sql`: the shell item, the Chronal Shard currency, the rift NPCs and spawngroups, and Zebuxoruk. It also opens The Void.
    - `02_class_sets.sql`: tier 1 class armor (16 classes x 7 pieces), set bonuses, and the Chronal Quartermaster's list.
-   - `03_tier_gear.sql`: armor tiers 2-5, jewelry and augments for tiers 1-5, their set bonuses, 34 custom spells, and 14 tier vendors.
+   - `03_tier_gear.sql`: armor tiers 2-5, jewelry, augments and weapons for tiers 1-5, their set bonuses, 34 custom spells, and 19 tier vendors.
    - `04_rift_zones.sql`: the rift copies of the zones (it still has a Solusek's Eye copy, which the rift pool no longer picks).
    - `05_sinks.sql`: Chronal Tributes 90-93, the Paragon AAs and the Chronal Artificer (`#reforge`) in The Void.
    - `06_paragon_nms_aa.sql`: only if you use the NMS AA set (`Custom:NmsAATables`); run it after `nms_aa_tables.sql`.
@@ -93,7 +93,12 @@ The SQL was generated from stock PEQ. If your database differs a lot, regenerate
 - **Zone crashes:** progress, pylons, the Guardian and the exit portal are saved in a data bucket as the run goes, and
   come back when the rift zone restarts.
 - **Gear unlocks:** the tier vendors hide their items until the character's deepest clear (`rift_deepest` bucket) reaches the unlock.
-  Armor tier N opens at (N-1) x 100, jewelry 25 later, augments 75 later.
+  Armor tier N opens at (N-1) x 100, jewelry 25 later, augments 50 later, weapons 75 later.
+- **Augments:** one all-stat Facet per tier, sold as Facet I and II (the same stats under two item ids, since an item
+  can't hold the same augment twice). Aug types 1, 2 and 4, any class.
+- **Weapons:** the Plane of Time weapons and shields, plus Stone of Flowing Time and Spool of Woven Time, copied per
+  tier at twice the stock item's stats times the tier multiplier. One copy per class, so each also rolls that class's
+  affixes; procs don't scale with the tier.
 - **Settings:** every number above, plus the NPC ids, is in `rift/lua_modules/rift_config.lua`. Run `#reloadquest` after editing it.
 - **The Void:** stock PEQ makes it GM-only; `01_rift_base.sql` opens it to everyone.
   To gate it, set `zone.flag_needed` for `thevoida`, or add a check in your own `global_player`.

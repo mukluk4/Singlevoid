@@ -6,7 +6,7 @@ to stock behavior.
 
 - **Greater Rifts:** timed, tiered (1 to 500) runs through instanced copies of classic dungeons, opened by
   Zebuxoruk in The Void, paying Chronal Shards and platinum.
-- **Rolled rift gear:** five tiers of class armor, jewelry and augments whose stats roll once on purchase,
+- **Rolled rift gear:** five tiers of class armor, jewelry, augments and weapons whose stats roll once on purchase,
   with set bonuses at 2/4/8 and 3/6/9 pieces.
 - **Sinks:** `#reforge`, rift-only Chronal Tributes and the Paragon AA lines.
 - **Quality of life:** `#autoskill`, buffs that hold while their caster is around, the Echo server buffs,

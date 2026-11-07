@@ -15,7 +15,7 @@ The generators only **read**. They write SQL and Lua files, which you apply your
 | Script | Writes | From |
 |---|---|---|
 | `gen_class_sets.py <source> sql class_sets.json <out.sql>` | `02_class_sets.sql`: tier 1 class armor (16 classes x 7 pieces), set bonuses at 2/4/8 pieces, the Chronal Quartermaster's list | `class_sets.json` |
-| `gen_tier_gear.py <source> class_sets.json tier_gear.json <out.sql>` | `03_tier_gear.sql`: armor tiers 2-5, jewelry and augments for tiers 1-5, their set bonuses and server-side spells, 14 tier vendors in The Void | `tier_gear.json` |
+| `gen_tier_gear.py <source> class_sets.json tier_gear.json <out.sql>` | `03_tier_gear.sql`: armor tiers 2-5, jewelry, augments and weapons for tiers 1-5, their set bonuses and server-side spells, 19 tier vendors in The Void | `tier_gear.json` |
 | `gen_rift_zones.py <source> <out.sql> rift/lua_modules/rift_zones.lua` | `04_rift_zones.sql` and the rift zone pool | the zone list in the script |
 | `gen_rift_appearances.py <source> rift/lua_modules/rift_appearances.lua` | mob looks per rift zone, plus Guardian looks | the database's own spawns |
 | `gen_sinks.py` | `05_sinks.sql` (Chronal Tributes, Paragon AAs, the Chronal Artificer), `06_paragon_nms_aa.sql` and `rift/client/dbstr_paragon.txt` | the settings at the top of the script (needs no source) |

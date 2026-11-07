@@ -1,5 +1,5 @@
-# Tiered rift gear (docs/dynamic_items/TIERED_GEAR.md): armor for gear tiers 2-5, non-visible pieces and
-# augments for tiers 1-5, their sets and bonuses, custom server-side spells, and the tier vendors.
+# Tiered rift gear (docs/dynamic_items/TIERED_GEAR.md): armor for gear tiers 2-5, non-visible pieces,
+# augments and weapons for tiers 1-5, their sets and bonuses, custom server-side spells, and the tier vendors.
 #
 #   python gen_tier_gear.py <eqemu_config.json | content dump .sql> <class_sets.json> <tier_gear.json> <out.sql>
 #
@@ -61,17 +61,21 @@ lo_spell, hi_spell = tg['spell_id_base'], tg['spell_id_base'] + len(numbered) - 
 fixed_spells = ', '.join(str(s['id']) for s in tg['custom_spells'] if 'id' in s) or '0'
 v = tg['vendors']
 lo_npc, hi_npc = v['npc_id_base'], v['npc_id_base'] + 3 * len(tiers) - 1
+# Kinds added later carry their own npc_id_base, so the first three kinds keep their ids
+extra_npcs = [k['npc_id_base'] + t['tier'] - 1 for k in v['kinds'].values() if 'npc_id_base' in k for t in tiers]
+npc_filter = f"npcID BETWEEN {lo_npc} AND {hi_npc}" + (
+    f" OR npcID IN ({', '.join(str(n) for n in extra_npcs)})" if extra_npcs else '')
 
 armor_sets  = [t['tier'] * 100 + c for t in tiers if t['tier'] > 1 for c, _ in classes]
 nonvis_sets = [tg['nonvis_set_base'] + t['tier'] * 100 + c for t in tiers for c, _ in classes]
 all_sets = ', '.join(str(s) for s in armor_sets + nonvis_sets)
 
 sql += [
-    f'DELETE FROM merchantlist WHERE merchantid BETWEEN {lo_npc} AND {hi_npc};',
-    f'DELETE FROM spawn2 WHERE spawngroupID IN (SELECT spawngroupID FROM spawnentry WHERE npcID BETWEEN {lo_npc} AND {hi_npc});',
+    f'DELETE FROM merchantlist WHERE {npc_filter.replace("npcID", "merchantid")};',
+    f'DELETE FROM spawn2 WHERE spawngroupID IN (SELECT spawngroupID FROM spawnentry WHERE {npc_filter});',
     f"DELETE FROM spawngroup WHERE name LIKE 'rift\\_tier\\_vendor\\_%';",
-    f'DELETE FROM spawnentry WHERE npcID BETWEEN {lo_npc} AND {hi_npc};',
-    f'DELETE FROM npc_types WHERE id BETWEEN {lo_npc} AND {hi_npc};',
+    f'DELETE FROM spawnentry WHERE {npc_filter};',
+    f'DELETE FROM npc_types WHERE {npc_filter.replace("npcID", "id")};',
     f'DELETE FROM armor_set_bonuses WHERE set_id IN ({all_sets});',
     f'DELETE FROM armor_set_items WHERE item_id BETWEEN {lo_item} AND {hi_item};',
     f'DELETE FROM dynamic_items WHERE item_id BETWEEN {lo_item} AND {hi_item};',
@@ -167,13 +171,13 @@ for t in tiers:
                            2 if nb['proc_type'] == 'proc' else 3))
 sql.append('')
 
-sql.append('-- Augments, gear tiers 1-5 (fixed stats, all classes, No Trade, aug types 1 and 2)')
+sql.append('-- Augments, gear tiers 1-5 (fixed stats, all classes, No Trade)')
 for t in tiers:
     vendor_items[('augments', t['tier'])] = []
     for n, a in enumerate(tg['augments']):
         iid = tier_item_id(t['tier'], tg['augment_block'] + n)
-        name = name_of(t['prefix'], a['name'])
-        over = {'id': str(iid), 'Name': quote(name), 'lore': quote(name), 'itemtype': '54', 'augtype': '3',
+        name = name_of(t['prefix'] or v['tier1_prefix'], a['name'])
+        over = {'id': str(iid), 'Name': quote(name), 'lore': quote(name), 'itemtype': '54', 'augtype': str(tg['augment_type']),
                 'slots': str(tg['augment_slots']), 'classes': '65535', 'races': '65535', 'icon': str(a['icon']),
                 'price': '0'}
         for i in range(1, 7):
@@ -188,6 +192,45 @@ for t in tiers:
             over['focustype'] = '6'
         sql.append(copy_row('items', item_cols, tg['nonvis_look_shell'], over))
         vendor_items[('augments', t['tier'])].append((iid, 65535))  # merchantlist classes_required: all classes
+sql.append('')
+
+for c in tg['scale_columns']:
+    if c not in item_cols:
+        sys.exit(f'unknown items column {c}')
+
+
+def scaled_copy(source_id, iid, prefix, mult, extra=None):
+    """Copy of an item: tier prefix before its name (any ' (Legendary)' suffix dropped), stats x mult (as scaled()), No Trade."""
+    name = f"CONCAT({quote(prefix + ' ')}, REPLACE(`Name`, ' (Legendary)', ''))"
+    over = {'id': str(iid), 'Name': name, 'lore': name, 'nodrop': '0', 'price': '0'}
+    for c in tg['scale_columns']:
+        over[c] = f'IF(`{c}` > 0, GREATEST(1, ROUND(`{c}` * {mult})), ROUND(`{c}` * {mult}))'
+    over.update(extra or {})
+    return copy_row('items', item_cols, source_id, over)
+
+
+TWO_HAND_TYPES = {1, 4, 35}  # 2H slashing, blunt, piercing
+weapon_src = {int(r[0]): (int(r[1]), int(r[2]), int(r[3])) for r in query(
+    f"SELECT id, classes, itemtype, slots FROM items WHERE id IN ({', '.join(str(s) for s in tg['weapons'])})")}
+missing = [s for s in tg['weapons'] if s not in weapon_src]
+if missing:
+    sys.exit(f'weapon sources not in items: {missing}')
+
+sql.append('-- Weapons and shields, gear tiers 1-5 (copies of the Plane of Time weapons, one per class)')
+for t in tiers:
+    vendor_items[('weapons', t['tier'])] = []
+    mult = round(t['mult'] * tg['weapon_source_mult'], 4)
+    for n, src in enumerate(tg['weapons']):
+        src_classes, itemtype, slots = weapon_src[src]
+        kind = 'two_hand' if itemtype in TWO_HAND_TYPES else 'range' if slots == 2048 else 'other'
+        roll = round(tg['weapon_roll_multiplier'][kind] * t['mult'], 4)
+        for cid, _ in classes:
+            if not src_classes & (1 << (cid - 1)):
+                continue
+            iid = tier_item_id(t['tier'], tg['weapon_block'] + n * 20, cid)
+            sql.append(scaled_copy(src, iid, t['prefix'] or v['tier1_prefix'], mult, {'classes': str(1 << (cid - 1))}))
+            dynamic_rows.append((iid, cid, t['tier'], roll, 'Tier weapon'))
+            vendor_items[('weapons', t['tier'])].append((iid, 1 << (cid - 1)))
 sql.append('')
 
 sql.append('INSERT INTO dynamic_items (item_id, class_id, tier, min_affixes, max_affixes, stat_multiplier, notes) VALUES')
@@ -229,7 +272,7 @@ def position(tier, kind):
 
 # Zone:StateSavingOnShutdown restores saved NPC positions on boot, overriding spawn2: drop the vendors' saved
 # state (takes effect only while thevoida is shut down, or the zone saves the old spots again on shutdown)
-sql.append(f"DELETE FROM zone_state_spawns WHERE npc_id = {v['quartermaster_npc']} OR npc_id BETWEEN {lo_npc} AND {hi_npc};")
+sql.append(f"DELETE FROM zone_state_spawns WHERE npc_id = {v['quartermaster_npc']} OR {npc_filter.replace('npcID', 'npc_id')};")
 qx, qy, qz, qh = position(1, 'armor')
 sql.append(f"UPDATE spawn2 SET zone = '{v['zone']}', x = {qx:.2f}, y = {qy:.2f}, z = {qz}, heading = {qh} "
            f"WHERE spawngroupID IN (SELECT spawngroupID FROM spawnentry WHERE npcID = {v['quartermaster_npc']});")
@@ -239,8 +282,11 @@ for t in tiers:
     for kind, k in v['kinds'].items():
         if kind == 'armor' and t['tier'] == 1:
             continue
-        nid = npc_id
-        npc_id += 1
+        if 'npc_id_base' in k:
+            nid = k['npc_id_base'] + t['tier'] - 1
+        else:
+            nid = npc_id
+            npc_id += 1
         name = f"{prefix}_{k['name']}"
         sql.append(copy_row('npc_types', npc_cols, v['copy_npc'], {
             'id': str(nid), 'name': quote(name), 'lastname': quote(f"Tier {t['tier']} {k['title']}"),
@@ -252,7 +298,8 @@ for t in tiers:
                    f"SELECT id, '{v['zone']}', 0, {x:.2f}, {y:.2f}, {z}, {h}, 60, 0 FROM spawngroup "
                    f"WHERE name = 'rift_tier_vendor_{nid}';")
 
-        unlock = t['unlock'] + {'armor': 0, 'nonvis': tg['nonvis_unlock_offset'], 'augments': tg['augment_unlock_offset']}[kind]
+        unlock = t['unlock'] + {'armor': 0, 'nonvis': tg['nonvis_unlock_offset'], 'augments': tg['augment_unlock_offset'],
+                                'weapons': tg['weapon_unlock_offset']}[kind]
         cost = k['cost'][t['tier'] - 1]
         rows = []
         for slot, (iid, class_bits) in enumerate(vendor_items[(kind, t['tier'])], start=1):
@@ -264,4 +311,6 @@ sql += ['', 'COMMIT;']
 
 open(out_path, 'w', newline='\n').write('\n'.join(sql) + '\n')
 print(f'{len(dynamic_rows)} dynamic items, {sum(len(x) for k, x in vendor_items.items() if k[0] == "augments")} augments, '
-      f'{len(bonus_rows)} set bonus rows, {len(tg["custom_spells"])} spells, {npc_id - v["npc_id_base"]} vendors -> {out_path}')
+      f'{sum(len(x) for k, x in vendor_items.items() if k[0] == "weapons")} weapons, '
+      f'{len(bonus_rows)} set bonus rows, {len(tg["custom_spells"])} spells, '
+      f'{npc_id - v["npc_id_base"] + len(extra_npcs)} vendors -> {out_path}')
