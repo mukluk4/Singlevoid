@@ -264,7 +264,7 @@ namespace {
 			return false;
 		}
 		if (item->Click.Type == EQ::item::ItemEffectEquipClick
-			&& !item->IsEquipable(c->GetBaseRace(), static_cast<uint16>(c->GetClassesBits()))) {
+			&& !item->IsEquipable(c->GetBaseRace(), c->GetClass())) {
 			return false;
 		}
 		return true;
@@ -1780,7 +1780,7 @@ const EQ::ItemData *NmsVaultProcItem(Client *c, uint16 hand)
 	// and nothing more (item_data.cpp), so this costs nothing measurable. Item TYPE is
 	// deliberately not restricted here: any permitted locker item overrides the held
 	// weapon's proc, which is the intended behaviour.
-	if (!item->IsEquipable(c->GetBaseRace(), static_cast<uint16>(c->GetClassesBits()))) {
+	if (!item->IsEquipable(c->GetBaseRace(), c->GetClass())) {
 		return nullptr;
 	}
 	return item;
@@ -1867,11 +1867,8 @@ void NmsVaultApplyLockerBonuses(Client *c, StatBonuses *b)
 	// (bonuses.cpp:277), so a Wizard could park a Warrior-only shield in slot 82 and collect
 	// its AC, HP, heroics and shield block. Checked here as well as in AddItemBonuses so the
 	// SetShieldEquipped() below is covered too - that flag is not gated by the bonus call.
-	// IsEquipable takes the multiclass bitmask, so a character holding several classes is
-	// judged on all of them (CODEBASE.md 3.1 - never branch on GetClass()).
-	// Cast is lossless: player classes run 1..16 and GetPlayerClassBit returns uint16
-	// (classes.h), so the whole mask fits. Explicit only to keep MSVC quiet on new code.
-	if (!inst->IsEquipable(c->GetBaseRace(), static_cast<uint16>(c->GetClassesBits()))) {
+	// Stock IsEquipable takes a class ID (it makes the bit itself), not a class bitmask
+	if (!inst->IsEquipable(c->GetBaseRace(), c->GetClass())) {
 		safe_delete(inst);
 		return;
 	}
@@ -2004,7 +2001,7 @@ void NmsVaultApplyModBonuses(Client *c, StatBonuses *b)
 
 		// A parked item lends nothing to a character who could not wear it, and the
 		// stock required-level gate applies (AddItemBonuses hard-skips below ReqLevel).
-		if (!inst->IsEquipable(c->GetBaseRace(), static_cast<uint16>(c->GetClassesBits()))
+		if (!inst->IsEquipable(c->GetBaseRace(), c->GetClass())
 			|| c->GetLevel() < inst->GetItemRequiredLevel(true)) {
 			safe_delete(inst);
 			continue;
